@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  autosubs-rocm:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rocm
+    profiles: ["rocm"]
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=UTC
+      # Uncomment and set below to enable Basic Authentication Web Login
+      # - AUTH_USERNAME=admin
+      # - AUTH_PASSWORD=secret
+    volumes:
+      - .:/app/data
+      # Native ROCm on Linux mapping:
+      # devices:
+      #   - /dev/kfd:/dev/kfd
+      #   - /dev/dri:/dev/dri
+
+  autosubs-cuda:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cuda
+    profiles: ["cuda"]
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=UTC
+      # Uncomment and set below to enable Basic Authentication Web Login
+      # - AUTH_USERNAME=admin
+      # - AUTH_PASSWORD=secret
+    volumes:
+      - .:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  autosubs-directml:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.directml
+    profiles: ["directml"]
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=UTC
+      # - AUTH_USERNAME=admin
+      # - AUTH_PASSWORD=secret
+    volumes:
+      - .:/app/data
+
+  autosubs-cpu:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cpu
+    profiles: ["cpu"]
+    ports:
+      - "8000:8000"
+    environment:
+      - TZ=UTC
+      # - AUTH_USERNAME=admin
+      # - AUTH_PASSWORD=secret
+    volumes:
+      - .:/app/data

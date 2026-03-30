@@ -1,0 +1,4 @@
+# Environment Constraints to satisfy WhisperX 3.7.4
+torch>=2.8.0
+torchaudio>=2.8.0
+torchvision>=0.20.0

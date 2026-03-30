@@ -1,0 +1,84 @@
+# Project Memory & Tracking (User Global Rules)
+MEMORY.md
+PROJECT_CONTEXT.md
+ToDo.md
+ToDo_Old.md
+*.md.bak
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node / Vite / GUI Artifacts
+node_modules/
+dist/
+build/
+out/
+bin/
+*.exe
+*.msi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Project Settings / Private Data
+.env
+.env.*
+config.json
+settings.json
+backend/profiles/
+backend/data/*.json
+!backend/data/profiles_schema.json
+
+# AI Models and Weights
+backend/models/
+backend/model_cache/
+models/
+weights/
+.cache/
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx
+*.weights
+*.engine
+*.h5
+*.ckpt
+*.mlmodel
+*.pb
+
+# Media Files / Tests / Outputs
+*.mp4
+*.mkv
+*.avi
+*.wmv
+*.mov
+*.flv
+*.wav
+*.mp3
+*.m4a
+*.srt
+*.vtt
+*.ssa
+*.ass
+backend/tests/output/
+tmp/
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

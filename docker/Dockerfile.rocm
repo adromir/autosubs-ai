@@ -1,0 +1,35 @@
+# Stage 1: Build the Vite + React Frontend
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
+
+# Stage 2: AMD ROCm Optimized Backend 
+# Using ROCm 7.2.0 which is modern and stable for gfx120x (9060XT)
+FROM rocm/pytorch:rocm7.2.0_ubuntu22.04_py3.10_pytorch_release_2.4.1 AS backend
+WORKDIR /app
+USER root
+RUN apt-get update && apt-get install -y ffmpeg gcc git && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and satisfy the resolver with WhisperX metadata surgery
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# [Surgery] Relax WhisperX version pins to avoid torch downgrade
+RUN python3 -c "import pathlib, re; \
+    dist_info = next(pathlib.Path('/opt/conda/lib/python3.10/site-packages').glob('whisperx-*.dist-info'), None); \
+    if dist_info: \
+        metadata = dist_info / 'METADATA'; \
+        text = metadata.read_text(); \
+        text = re.sub(r'Requires-Dist: torch \(~=2\.8\.0\)', 'Requires-Dist: torch (>=2.8.0)', text); \
+        text = re.sub(r'Requires-Dist: torchaudio \(~=2\.8\.0\)', 'Requires-Dist: torchaudio (>=2.8.0)', text); \
+        metadata.write_text(text); \
+        print('WhisperX metadata patched.')"
+
+COPY backend/ ./backend/
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
+EXPOSE 8000
+WORKDIR /app/backend
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
