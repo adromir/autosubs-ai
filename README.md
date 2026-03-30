@@ -1,7 +1,7 @@
 # 🎬 AutoSubs AI
 
 <p align="center">
-  <img src="frontend/public/logo.png" alt="AutoSubs AI Logo" width="200">
+  <img src="assets/logo.png" alt="AutoSubs AI Logo" width="200">
 </p>
 
 <p align="center">
