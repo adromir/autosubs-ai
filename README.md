@@ -1,12 +1,21 @@
 # 🎬 AutoSubs AI
 
 <p align="center">
+  <img src="frontend/public/logo.png" alt="AutoSubs AI Logo" width="200">
+</p>
+
+<p align="center">
   <a href="https://github.com/adromir">
     <img src="https://img.shields.io/badge/Creator-Adromir-blueviolet?style=for-the-badge&logo=github" alt="Creator Adromir">
   </a>
-  <img src="https://img.shields.io/badge/Status-Stable-success?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Status-WIP-orange?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Version-0.0.1--alpha-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
 </p>
+
+> [!CAUTION]
+> **Work In Progress (WIP)**: This is NOT a stable release. This repository is currently in an Alpha/Experimental state. 
+> Only the **ROCm (AMD GPU)** workflow on Windows has been tested so far. Other environments (CUDA, Linux) are currently under development and may be unstable.
 
 <p align="center">
   <img src="https://img.shields.io/badge/AMD_ROCm-7.1-orange?style=for-the-badge&logo=amd" alt="AMD ROCm 7.1">
