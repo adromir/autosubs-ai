@@ -22,17 +22,26 @@ def set_hf_token(request: HFTokenRequest):
         
         print(f"[HF-Auth] Verifying token: {token[:4]}...{token[-4:] if len(token) > 8 else ''}")
         
-        # 2. Manual verification via HfApi to get detailed failure info
-        api = HfApi()
+        # Temporarily disable OFFLINE mode for validation
+        orig_offline = os.environ.get("HF_HUB_OFFLINE")
+        os.environ["HF_HUB_OFFLINE"] = "0"
         try:
-            user_info = api.whoami(token=token)
-            print(f"[HF-Auth] Success! Logged in as: {user_info.get('name')} ({user_info.get('type')})")
-        except Exception as api_err:
-            print(f"[HF-Auth] HfApi.whoami failed: {api_err}")
-            raise HTTPException(status_code=400, detail=f"Invalid Token: {str(api_err)}")
+            # 2. Manual verification via HfApi
+            api = HfApi()
+            try:
+                user_info = api.whoami(token=token)
+                print(f"[HF-Auth] Success! Logged in as: {user_info.get('name')} ({user_info.get('type')})")
+            except Exception as api_err:
+                print(f"[HF-Auth] HfApi.whoami failed: {api_err}")
+                raise HTTPException(status_code=400, detail=f"Invalid Token: {str(api_err)}")
 
-        # 3. Synchronize with the official login utility
-        login(token=token)
+            # 3. Synchronize with the official login utility
+            login(token=token)
+        finally:
+            if orig_offline is not None:
+                os.environ["HF_HUB_OFFLINE"] = orig_offline
+            else:
+                os.environ.pop("HF_HUB_OFFLINE", None)
         
         # 4. Persist
         dotenv_file = find_dotenv()
@@ -70,7 +79,13 @@ class NetworkMountRequest(BaseModel):
 
 @router.get("/network-mount")
 def get_network_mounts():
-    return network_manager.get_mounts()
+    return network_manager.get_mount_statuses()
+
+@router.get("/network-mount/check")
+def check_mount_status(share_path: str):
+    if not share_path:
+        raise HTTPException(status_code=400, detail="Share path is required")
+    return {"path": share_path, "online": network_manager.is_reachable(share_path)}
 
 @router.post("/network-mount")
 def mount_network(request: NetworkMountRequest):

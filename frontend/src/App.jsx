@@ -118,20 +118,18 @@ function App() {
         
         <div className="button-groups-container">
           {/* Group 1: App Navigation */}
-          <div className="nav-group">
+          <div className="system-group">
             {view === 'home' ? (
               <button 
                 onClick={() => setView('settings')} 
-                className="btn-ghost"
-                title="Configure Global Settings"
+                title="Open Settings"
               >
                 <SettingsIcon size={20} /> Settings
               </button>
             ) : (
               <button 
                 onClick={() => setView('home')} 
-                className="btn-ghost"
-                title="Return to Dashboard"
+                title="Back to Dashboard"
               >
                 <Tv size={20} /> Dashboard
               </button>
@@ -142,7 +140,6 @@ function App() {
           <div className="system-group">
             <button 
               onClick={() => setIsConsoleOpen(!isConsoleOpen)}
-              className={isConsoleOpen ? 'btn-active' : 'btn-ghost'}
               title="Open Server Control Center"
             >
               <Terminal size={20} /> Console
@@ -150,7 +147,7 @@ function App() {
             <button
               onClick={handleRestart}
               disabled={restarting}
-              className={`btn-ghost ${restarting ? 'btn-restarting' : ''}`}
+              className={restarting ? 'btn-restarting' : undefined}
             >
               <RefreshCw size={20} style={{ animation: restarting ? 'spin 1s linear infinite' : 'none' }} />
               {restarting ? 'Restarting...' : 'Restart'}

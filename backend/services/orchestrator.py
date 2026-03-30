@@ -150,9 +150,8 @@ async def process_phase_1(job):
             provider_configs = {p["id"]: {"username": p.get("user"), "password": p.get("pass"), "api_key": p.get("api_key")} 
                                for p in providers_all if p.get("id")}
             
-            # Request all relevant languages at once
-            all_langs_to_search = list(set(job.target_languages + [job.base_language] + 
-                                       ["en", "de", "es", "fr", "it", "pt", "nl", "ru", "ja", "zh", "ko", "pl", "tr", "id", "hi", "ar"]))
+            # Request only the languages the user configured: base + all targets (deduplicated)
+            all_langs_to_search = list(set([job.base_language] + job.target_languages))
             
             fetch_results = await asyncio.to_thread(
                 fetch_all_subtitles,

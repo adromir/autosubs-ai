@@ -76,7 +76,7 @@ export function JobQueue({ jobs }) {
                      await fetch(`/api/jobs/${j.id}`, { method: 'DELETE' }).catch(() => {});
                    }
                 }}
-                style={{ background: 'transparent', border: '1px solid var(--text-muted)', padding: '0.6rem 1.2rem', borderRadius: '6px', color: 'var(--text)', cursor: 'pointer' }}>
+              >
                 Clear Queue History
               </button>
             </div>
@@ -100,7 +100,8 @@ export function JobQueue({ jobs }) {
                   </span>
                   <button 
                     onClick={() => fetch(`/api/jobs/${activeJob.id}`, { method: 'DELETE' }).catch(() => {})}
-                    style={{ background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '0.8rem' }}>
+                    style={{ background: 'var(--danger)', color: 'white', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                  >
                     Kill Task
                   </button>
                 </div>

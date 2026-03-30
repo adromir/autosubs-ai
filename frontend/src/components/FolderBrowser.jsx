@@ -29,7 +29,21 @@ export function FolderBrowser({ onSelect, selectedPath }) {
   };
 
   useEffect(() => {
-    try { setNetworkShares(JSON.parse(localStorage.getItem('as_network_shares')) || []); } catch {}
+    // Fetch active network shares from the backend
+    const fetchShares = async () => {
+      try {
+        const res = await fetch('/api/settings/network-mount');
+        if (res.ok) {
+          const data = await res.json();
+          // The backend returns an object indexed by share path
+          setNetworkShares(Object.keys(data || {}));
+        }
+      } catch (err) {
+        console.error("Failed to sync network shares in browser:", err);
+      }
+    };
+    
+    fetchShares();
     loadDirectory('');
   }, []);
 

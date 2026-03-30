@@ -65,7 +65,7 @@ def browse_directory(path: Optional[str] = None):
 @router.get("/config/models")
 def get_models():
     return {
-        "models": ["tiny", "base", "small", "medium", "large", "large-v2", "large-v3"]
+        "models": ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v2", "large-v3", "large-v3-turbo"]
     }
 
 @router.get("/config/hardware")
@@ -323,11 +323,11 @@ def get_model_manager():
             
     return ModelManager(str(model_dir), str(nllb_dir))
 
-@router.get("/api/models")
+@router.get("/models")
 def list_models():
     return get_model_manager().list_models()
 
-@router.delete("/api/models")
+@router.delete("/models")
 def delete_model(path: str):
     if not path:
         raise HTTPException(status_code=400, detail="Path is required")
@@ -336,7 +336,7 @@ def delete_model(path: str):
         raise HTTPException(status_code=500, detail="Failed to delete model")
     return {"status": "success"}
 
-@router.post("/api/models/wipe")
+@router.post("/models/wipe")
 def wipe_models():
     # Final safety check handled by frontend, but we could add more here
     results = get_model_manager().wipe_all()

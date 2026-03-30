@@ -118,7 +118,7 @@ import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-app.include_router(api_router, prefix="/api")
+
 
 from api.settings import router as settings_router
 app.include_router(settings_router, prefix="/api/settings")
@@ -142,7 +142,10 @@ if os.path.exists(frontend_dist):
     # Catch-all route to serve index.html for React Router (if using client-side routing)
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
-        # We only catch-all if it doesn't start with /api (handled above)
+        # We only catch-all if it doesn't start with /api
+        if full_path.startswith("api/"):
+            return Response("Not Found", status_code=404)
+            
         file_path = os.path.join(frontend_dist, full_path)
         if full_path and os.path.exists(file_path):
             return FileResponse(file_path)

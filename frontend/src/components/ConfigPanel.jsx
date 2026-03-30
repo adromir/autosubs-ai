@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Play, ArrowUp, ArrowDown, X, Save, Plus, Trash2, Edit3, Check, Globe, ChevronRight, ChevronDown, HelpCircle, Info } from 'lucide-react';
+import { Settings, Play, ArrowUp, ArrowDown, X, Save, Plus, Trash2, Edit3, Check, Globe, ChevronRight, ChevronDown, HelpCircle, Info, Film, Languages } from 'lucide-react';
+import CustomSelect from './CustomSelect';
 
 const Tooltip = ({ text, children }) => {
   const [show, setShow] = useState(false);
@@ -514,7 +515,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       
       <CollapsibleSection 
         title="Media & Track Selection" 
-        icon={ArrowDown} 
+        icon={Film} 
         isOpen={openSections.tracks} 
         onToggle={() => toggleSection('tracks')}
         helpText={`Base Language: The primary audio language of the video. All translations are derived from this.
@@ -524,18 +525,11 @@ Hardcode: Permanently burns the subtitles into the video (requires re-encoding).
       >
         <div style={{ marginBottom: '1.25rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Base Language (Audio Source)</label>
-          <select 
+          <CustomSelect 
             value={selectedBaseLang} 
             onChange={(e) => setSelectedBaseLang(e.target.value)}
-            style={{ 
-              width: '100%', padding: '0.75rem', borderRadius: '8px', 
-              background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--panel-border)', outline: 'none' 
-            }}
-          >
-            {languages.map(l => (
-              <option key={l.code} value={l.code}>{l.name}</option>
-            ))}
-          </select>
+            options={languages.map(l => ({ value: l.code, label: l.name }))}
+          />
         </div>
 
         <div style={{ marginBottom: '1.25rem' }}>
@@ -560,16 +554,12 @@ Hardcode: Permanently burns the subtitles into the video (requires re-encoding).
             })}
           </div>
 
-          <select 
+          <CustomSelect 
               value="" 
               onChange={e => addLang(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px dashed var(--panel-border)', outline: 'none' }}
-          >
-              <option value="" disabled>+ Add Target Language</option>
-              {languages.filter(l => !selectedLangs.includes(l.code)).map(l => (
-                  <option key={l.code} value={l.code}>{l.name}</option>
-              ))}
-          </select>
+              placeholder="+ Add Target Language"
+              options={languages.filter(l => !selectedLangs.includes(l.code)).map(l => ({ value: l.code, label: l.name }))}
+          />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -626,33 +616,19 @@ VAD (Voice Activity Detection): Filters out background noise and non-speech audi
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Model Size</label>
-            <select 
+            <CustomSelect 
               value={selectedModel} 
               onChange={(e) => setSelectedModel(e.target.value)}
-              style={{ 
-                width: '100%', padding: '0.75rem', borderRadius: '8px', 
-                background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--panel-border)', outline: 'none' 
-              }}
-            >
-              {models.map(m => (
-                <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
-              ))}
-            </select>
+              options={models.map(m => ({ value: m, label: m.charAt(0).toUpperCase() + m.slice(1) }))}
+            />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Engine & Hardware</label>
-            <select 
+            <CustomSelect 
               value={selectedEngine} 
               onChange={(e) => setSelectedEngine(e.target.value)}
-              style={{ 
-                width: '100%', padding: '0.75rem', borderRadius: '8px', 
-                background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--panel-border)', outline: 'none' 
-              }}
-            >
-              {engines.map(eng => (
-                <option key={eng.id} value={eng.id}>{eng.name}</option>
-              ))}
-            </select>
+              options={engines.map(eng => ({ value: eng.id, label: eng.name }))}
+            />
           </div>
         </div>
 
@@ -687,10 +663,14 @@ VAD (Voice Activity Detection): Filters out background noise and non-speech audi
           <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>VAD Model Preference</label>
-              <select value={vadModel} onChange={e => setVadModel(e.target.value)} style={{ width: '100%', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px solid var(--panel-border)', borderRadius: '6px' }}>
-                <option value="pyannote">Pyannote VAD (High Quality, 2.5GB VRAM)</option>
-                <option value="silero">Silero VAD (Fastest, Light, v5.1)</option>
-              </select>
+              <CustomSelect 
+                value={vadModel} 
+                onChange={e => setVadModel(e.target.value)}
+                options={[
+                  { value: 'pyannote', label: 'Pyannote VAD (High Quality, 2.5GB VRAM)' },
+                  { value: 'silero', label: 'Silero VAD (Fastest, Light, v5.1)' }
+                ]}
+              />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
@@ -716,7 +696,7 @@ VAD (Voice Activity Detection): Filters out background noise and non-speech audi
 
       <CollapsibleSection 
         title="Translation Parameters" 
-        icon={Check} 
+        icon={Languages} 
         isOpen={openSections.translation} 
         onToggle={() => toggleSection('translation')}
         helpText={`NLLB-200: A high-fidelity local translation model that runs on your hardware.
@@ -726,35 +706,28 @@ Deep Cleanup: Advanced post-processing to fix formatting, remove duplicate lines
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>Translation Engine</label>
-            <select 
+            <CustomSelect 
               value={translationEngine} 
               onChange={(e) => setTranslationEngine(e.target.value)}
-              style={{ 
-                width: '100%', padding: '0.75rem', borderRadius: '8px', 
-                background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--panel-border)', outline: 'none' 
-              }}
-            >
-              <option value="nllb">NLLB-200 (Default, Fast)</option>
-              <option value="native">Native LLM (In-Process GGUF)</option>
-            </select>
+              options={[
+                { value: 'nllb', label: 'NLLB-200 (Default, Fast)' },
+                { value: 'native', label: 'Native LLM (In-Process GGUF)' }
+              ]}
+            />
           </div>
           {translationEngine === 'native' && (
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-muted)' }}>GGUF Model</label>
-              <select 
+              <CustomSelect 
                 value={llmModelPath || ''}
                 onChange={e => {
                   const val = e.target.value;
                   console.log("[UI] Model selected:", val);
                   setLlmModelPath(val);
                 }}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--panel-border)', color: 'white', outline: 'none' }}
-              >
-                <option value="">Select a model...</option>
-                {localLlamaModels.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+                placeholder="Select a model..."
+                options={localLlamaModels.map(m => ({ value: m, label: m }))}
+              />
               {localLlamaModels.length === 0 && (
                 <p style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.25rem' }}>
                   No models found. Download one in Settings.

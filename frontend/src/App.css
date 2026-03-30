@@ -32,7 +32,9 @@
   align-items: center;
 }
 
-.nav-group, .system-group {
+
+
+.system-group {
   display: flex;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -41,30 +43,9 @@
   border: 1px solid var(--panel-border);
 }
 
-.nav-group {
-  background: rgba(74, 144, 226, 0.05); /* Slight blue tint for App/Nav */
-}
 
-.system-group {
-  background: rgba(255, 255, 255, 0.03); /* Neutral/Dark for Server */
-}
 
-.btn-ghost {
-  background: transparent;
-  border: 1px solid var(--panel-border);
-  color: var(--text-main);
-}
 
-.btn-active {
-  background: var(--primary);
-  color: white;
-  border: 1px solid var(--primary);
-}
-
-.btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--primary);
-}
 
 .btn-restarting {
   background: #555 !important;
