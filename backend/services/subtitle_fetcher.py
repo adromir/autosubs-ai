@@ -229,9 +229,9 @@ def fetch_subtitle(
                 subdl_list = subdl_client.search_subtitles(search_title, languages=language_code, year=movie_year, imdb_id=imdb_id)
                 if subdl_list:
                     # Best match from the list
-                    # SubDL gives us a relative or full download URL in the 'url' field.
+                    # SubDL gives us an nId (v2) or relative URL (v1)
                     best_subdl = subdl_list[0]
-                    dl_url = best_subdl.get('url')
+                    dl_url = best_subdl.get('n_id') or best_subdl.get('nId') or best_subdl.get('id') or best_subdl.get('url')
                     if dl_url:
                         full_lang = f"{language_code}_{language_code.upper()}"
                         video_stem = Path(video_path).stem
@@ -372,7 +372,8 @@ def fetch_all_subtitles(
                 # Request specifically for this language
                 subdl_list = subdl_client.search_subtitles(search_title, languages=lang_code, year=movie_year, imdb_id=imdb_id)
                 if subdl_list:
-                    dl_url = subdl_list[0].get('url')
+                    best_subdl = subdl_list[0]
+                    dl_url = best_subdl.get('n_id') or best_subdl.get('nId') or best_subdl.get('id') or best_subdl.get('url')
                     if dl_url:
                         output_path = _get_output_path(video_path, lang_code)
                         if subdl_client.download_and_extract(dl_url, output_path):

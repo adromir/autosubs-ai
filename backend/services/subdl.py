@@ -10,8 +10,8 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class SubDLClient:
-    # Changed from api.subdl.com to apiold.subdl.com to bypass current DNS resolution issues (getaddrinfo failed)
-    API_URL = "https://apiold.subdl.com/api/v1/subtitles"
+    # Migrated to v2 API for subtitles search
+    API_URL = "https://api.subdl.com/api/v2/subtitles/search"
     DOWNLOAD_BASE = "https://dl.subdl.com"
     # Same safety throttle as SubSource
     MIN_REQUEST_INTERVAL = 1.2
@@ -31,14 +31,15 @@ class SubDLClient:
     def search_subtitles(self, title: str, languages: str, year: Optional[int] = None, imdb_id: Optional[str] = None) -> List[Dict]:
         """Searches for subtitles using the SubDL API."""
         self._throttle()
+        headers = {
+            "Authorization": f"Bearer {self.api_key}"
+        }
         params = {
-            "api_key": self.api_key,
             "languages": languages,
-            "type": "movie"
+            "type": "movie",
+            "unpack": 1
         }
         if imdb_id:
-            # SubDL documentation says "imdb_id" as a parameter
-            # We provide the full ID (with tt) as it's common, or the numeric part
             params["imdb_id"] = imdb_id
         else:
             params["film_name"] = title
@@ -50,10 +51,12 @@ class SubDLClient:
             query_url = f"{self.API_URL}?" + "&".join([f"{k}={v}" for k,v in params.items()])
             print(f"[SubDL] Search Query: {query_url}")
             
-            resp = requests.get(self.API_URL, params=params, timeout=12)
+            resp = requests.get(self.API_URL, params=params, headers=headers, timeout=12)
             resp.raise_for_status()
             data = resp.json()
-            if data.get("status") and data.get("subtitles"):
+            if "results" in data and data["results"]:
+                return data["results"]
+            elif data.get("status") and data.get("subtitles"):
                 return data["subtitles"]
             return []
         except Exception as e:
@@ -64,16 +67,24 @@ class SubDLClient:
         """Downloads the file and extracts the first .srt if it's a ZIP."""
         self._throttle()
         
-        # SubDL returns relative URLs (e.g. /subtitle/...). We must prepend the base domain.
-        full_url = download_url
-        if download_url.startswith('/'):
-            full_url = f"{self.DOWNLOAD_BASE}{download_url}"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}"
+        }
+        
+        # SubDL v2 returns nId which must be used for downloads, or relative URLs.
+        full_url = str(download_url)
+        if not full_url.startswith("http") and not full_url.startswith("/"):
+            # Treat as v2 nId
+            full_url = f"https://api.subdl.com/api/v2/subtitles/{full_url}/download"
+        elif full_url.startswith('/'):
+            # Legacy fallback
+            full_url = f"{self.DOWNLOAD_BASE}{full_url}"
             
         print(f"[SubDL] Final Download URL: {full_url}")
         temp_file = f"{output_path}.tmp"
         try:
             # Download the file
-            resp = requests.get(full_url, timeout=25, stream=True)
+            resp = requests.get(full_url, headers=headers, timeout=25, stream=True)
             resp.raise_for_status()
             with open(temp_file, 'wb') as f:
                 for chunk in resp.iter_content(chunk_size=8192):
