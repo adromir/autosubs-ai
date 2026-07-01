@@ -37,11 +37,22 @@ def _cleanup_temp_audio(video_path: str):
             print(f" -> Failed to cleanup {path}: {e}")
 
 
-def _get_srt_path(video_path: str, lang_code: str) -> str:
-    """Standardized subtitle naming: moviename.lang_LANG.srt"""
+EMBY_LANG_MAP = {
+    "en": "eng", "de": "ger", "es": "spa", "fr": "fre", "it": "ita", "pt": "por", 
+    "nl": "dut", "ru": "rus", "ja": "jpn", "zh": "chi", "ko": "kor", "pl": "pol", 
+    "tr": "tur", "id": "ind", "hi": "hin", "ar": "ara", "sv": "swe", "da": "dan", 
+    "fi": "fin", "no": "nor", "cs": "cze", "el": "gre", "hu": "hun", "ro": "rum"
+}
+
+def _get_srt_path(video_path: str, lang_code: str, emby_naming: bool = False) -> str:
+    """Standardized subtitle naming: moviename.lang_LANG.srt (or Emby strict .eng.srt)"""
     path_obj = Path(video_path)
-    full_lang = f"{lang_code}_{lang_code.upper()}"
-    return str(path_obj.with_name(f"{path_obj.stem}.{full_lang}.srt"))
+    if emby_naming:
+        emby_lang = EMBY_LANG_MAP.get(lang_code, lang_code)
+        return str(path_obj.with_name(f"{path_obj.stem}.{emby_lang}.srt"))
+    else:
+        full_lang = f"{lang_code}_{lang_code.upper()}"
+        return str(path_obj.with_name(f"{path_obj.stem}.{full_lang}.srt"))
 
 
 def _select_best_audio(media_info, base_lang, target_langs, fallback_enabled):
@@ -90,7 +101,7 @@ async def process_phase_1(job):
 
         # ADVANCED OPTIMIZATION: Check for sidecar SRT file BEFORE heavy probing/discovery
         source_lang = job.base_language
-        sidecar_srt = _get_srt_path(job.filepath, source_lang)
+        sidecar_srt = _get_srt_path(job.filepath, source_lang, getattr(job, "emby_naming", False))
         if os.path.exists(sidecar_srt):
             print(f" -> Optimization: Sidecar SRT found for {source_lang}. Ensuring refinement...")
             await asyncio.to_thread(sanitize_and_refine, sidecar_srt, deep_cleanup=getattr(job, "deep_cleanup", True))
@@ -104,21 +115,22 @@ async def process_phase_1(job):
         # 1. First, check which target languages we ALREADY have on disk (natively extracted/existing)
         target_langs_needed = set(job.target_languages)
         for tgt in list(target_langs_needed):
-            output_srt = _get_srt_path(job.filepath, tgt)
+            output_srt = _get_srt_path(job.filepath, tgt, getattr(job, "emby_naming", False))
             if os.path.exists(output_srt):
                 target_langs_needed.remove(tgt)
         
         # Check embedded tracks for these missing targets
-        for sub_track in media_info.subtitle_tracks:
-            if sub_track.language in target_langs_needed:
-                output_srt = _get_srt_path(job.filepath, sub_track.language)
-                await job_manager.update_job(job.id, status="extracting", progress=15.0, message=f"Extracting {sub_track.language} subtitle")
-                try:
-                    await asyncio.to_thread(extract_subtitle, job.filepath, output_srt, sub_track.index)
-                    await asyncio.to_thread(sanitize_and_refine, output_srt, deep_cleanup=getattr(job, "deep_cleanup", True))
-                    target_langs_needed.remove(sub_track.language)
-                except Exception as e:
-                    print(f"Extraction failed for {sub_track.language}: {e}")
+        if getattr(job, "enable_extraction", True):
+            for sub_track in media_info.subtitle_tracks:
+                if sub_track.language in target_langs_needed:
+                    output_srt = _get_srt_path(job.filepath, sub_track.language, getattr(job, "emby_naming", False))
+                    await job_manager.update_job(job.id, status="extracting", progress=15.0, message=f"Extracting {sub_track.language} subtitle")
+                    try:
+                        await asyncio.to_thread(extract_subtitle, job.filepath, output_srt, sub_track.index)
+                        await asyncio.to_thread(sanitize_and_refine, output_srt, deep_cleanup=getattr(job, "deep_cleanup", True))
+                        target_langs_needed.remove(sub_track.language)
+                    except Exception as e:
+                        print(f"Extraction failed for {sub_track.language}: {e}")
 
         # Are we completely done for ALL target languages already?
         if not target_langs_needed and not getattr(job, "fetch_all_available", False):
@@ -176,7 +188,7 @@ async def process_phase_1(job):
         # INDIVIDUAL DISCOVERY LOOP: Find the best local or specific internet source
         for lang in discovery_queue:
             if is_cancelled(): return
-            srt_path = _get_srt_path(job.filepath, lang)
+            srt_path = _get_srt_path(job.filepath, lang, getattr(job, "emby_naming", False))
             
             # Already exists (perhaps just downloaded via bulk fetch above)?
             if os.path.exists(srt_path):
@@ -184,16 +196,17 @@ async def process_phase_1(job):
                 break
                 
             # Check embedded?
-            for sub_track in media_info.subtitle_tracks:
-                if sub_track.language == lang:
-                    await job_manager.update_job(job.id, status="extracting", progress=22.0, message=f"Extracting source language {lang}")
-                    try:
-                        await asyncio.to_thread(extract_subtitle, job.filepath, srt_path, sub_track.index)
-                        await asyncio.to_thread(sanitize_and_refine, srt_path, deep_cleanup=getattr(job, "deep_cleanup", True))
-                        found_source = lang
-                        break
-                    except Exception as e:
-                        print(f"Source extraction failed for {lang}: {e}")
+            if getattr(job, "enable_extraction", True):
+                for sub_track in media_info.subtitle_tracks:
+                    if sub_track.language == lang:
+                        await job_manager.update_job(job.id, status="extracting", progress=22.0, message=f"Extracting source language {lang}")
+                        try:
+                            await asyncio.to_thread(extract_subtitle, job.filepath, srt_path, sub_track.index)
+                            await asyncio.to_thread(sanitize_and_refine, srt_path, deep_cleanup=getattr(job, "deep_cleanup", True))
+                            found_source = lang
+                            break
+                        except Exception as e:
+                            print(f"Source extraction failed for {lang}: {e}")
             if found_source: break
             
             # If not found yet and bulk wasn't enabled, try specific search
@@ -242,6 +255,12 @@ async def process_phase_1(job):
             job.actual_source_lang = found_source
             await job_manager.update_job(job.id, status="awaiting_translation", progress=40.0, message=f"Source ({found_source}) acquired. Awaiting translation")
         else:
+            if not getattr(job, "enable_transcription", True):
+                print(f" -> No subtitles found and AI transcription is disabled.")
+                await job_manager.update_job(job.id, status="failed", progress=0.0, message="No subtitle retrieved and transcription is disabled.")
+                _cleanup_temp_audio(job.filepath)
+                return
+
             print(f" -> No suitable native subs found. Preparing for ML Transcription...")
             
             # Smart Audio Selection for Phase 2
@@ -313,7 +332,7 @@ async def process_phase_2(job):
         
         # We need an output path for the 'detected' or requested lang
         # We'll use a placeholder until detection is finished if trans_lang is None
-        initial_srt_path = _get_srt_path(job.filepath, job.base_language)
+        initial_srt_path = _get_srt_path(job.filepath, job.base_language, getattr(job, "emby_naming", False))
         
         loop = asyncio.get_running_loop()
         media_info = await asyncio.to_thread(probe_video, job.filepath, job.ignore_forced_subs)
@@ -346,14 +365,14 @@ async def process_phase_2(job):
         
         if detected_lang and detected_lang != job.base_language:
             # If whisper detected something else, rename the SRT to match
-            actual_srt = _get_srt_path(job.filepath, detected_lang)
+            actual_srt = _get_srt_path(job.filepath, detected_lang, getattr(job, "emby_naming", False))
             if os.path.exists(initial_srt_path):
                 os.rename(initial_srt_path, actual_srt)
             job.actual_source_lang = detected_lang
         else:
             job.actual_source_lang = job.base_language
 
-        await asyncio.to_thread(sanitize_and_refine, _get_srt_path(job.filepath, job.actual_source_lang), deep_cleanup=job.deep_cleanup)
+        await asyncio.to_thread(sanitize_and_refine, _get_srt_path(job.filepath, job.actual_source_lang, getattr(job, "emby_naming", False)), deep_cleanup=job.deep_cleanup)
         await job_manager.update_job(job.id, status="awaiting_translation", progress=60.0, message="Transcription complete", transcribed=True)
         
         # Atomic Cleanup: Remove temp audio after transcription is DONE
@@ -382,7 +401,7 @@ async def process_phase_3(job):
         clear_transcription_cache()
         
         source_lang = job.actual_source_lang or job.base_language
-        base_srt = _get_srt_path(job.filepath, source_lang)
+        base_srt = _get_srt_path(job.filepath, source_lang, getattr(job, "emby_naming", False))
         
         if not os.path.exists(base_srt):
             raise RuntimeError(f"Source SRT not found at {base_srt}")
@@ -392,7 +411,7 @@ async def process_phase_3(job):
         target_langs_needed = []
         for lang in all_requested:
             if lang == source_lang: continue
-            output_srt = _get_srt_path(job.filepath, lang)
+            output_srt = _get_srt_path(job.filepath, lang, getattr(job, "emby_naming", False))
             if not os.path.exists(output_srt):
                 target_langs_needed.append(lang)
                 
@@ -405,7 +424,7 @@ async def process_phase_3(job):
         loop = asyncio.get_running_loop()
         
         for idx, tgt_lang in enumerate(target_langs_needed):
-            output_srt = _get_srt_path(job.filepath, tgt_lang)
+            output_srt = _get_srt_path(job.filepath, tgt_lang, getattr(job, "emby_naming", False))
             if is_cancelled(): return
             
             def trans_progress(p_val):
@@ -446,11 +465,11 @@ async def process_phase_4(job):
         
         # Burn first target language, or fallback to base
         burn_lang = job.target_languages[0] if job.target_languages else job.base_language
-        burn_srt = _get_srt_path(job.filepath, burn_lang)
+        burn_srt = _get_srt_path(job.filepath, burn_lang, getattr(job, "emby_naming", False))
             
         if not os.path.exists(burn_srt):
             # Try burning the actual source if targets missing
-            burn_srt = _get_srt_path(job.filepath, job.actual_source_lang or job.base_language)
+            burn_srt = _get_srt_path(job.filepath, job.actual_source_lang or job.base_language, getattr(job, "emby_naming", False))
 
         await asyncio.to_thread(burn_subtitles, job.filepath, burn_srt)
         await job_manager.update_job(job.id, status="completed", progress=100.0, message="Completed (Hardcoded)")

@@ -39,6 +39,9 @@ class JobStatus(BaseModel):
     fetch_all_available: bool = False
     actual_source_lang: Optional[str] = None
     transcription_lang_hint: Optional[str] = None
+    enable_extraction: bool = True
+    enable_transcription: bool = True
+    emby_naming: bool = False
 
 class JobManager:
     def __init__(self):
@@ -62,7 +65,7 @@ class JobManager:
         for q in self.listeners:
             await q.put(payload)
 
-    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "") -> JobStatus:
+    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "", enable_extraction: bool = True, enable_transcription: bool = True, emby_naming: bool = False) -> JobStatus:
         job_id = str(uuid.uuid4())
         now = datetime.now()
         job = JobStatus(
@@ -95,7 +98,10 @@ class JobManager:
             auto_sync=auto_sync,
             fallback_to_targets=fallback_to_targets,
             fetch_all_available=fetch_all_available,
-            llm_model_path=llm_model_path
+            llm_model_path=llm_model_path,
+            enable_extraction=enable_extraction,
+            enable_transcription=enable_transcription,
+            emby_naming=emby_naming
         )
         self.jobs[job_id] = job
         return job

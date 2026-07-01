@@ -35,6 +35,7 @@ yarn-error.log*
 .env.*
 config.json
 settings.json
+installer_config.json
 backend/profiles/
 backend/data/*.json
 !backend/data/profiles_schema.json
@@ -82,3 +83,4 @@ tmp/
 *.ntvs*
 *.njsproj
 *.sln
+/.agents

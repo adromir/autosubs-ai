@@ -133,6 +133,9 @@ export function ConfigPanel({ onProcess, disabled }) {
   const [vadModel, setVadModel] = useState('pyannote');
   const [fallbackToTargets, setFallbackToTargets] = useState(false);
   const [fetchInternetSubs, setFetchInternetSubs] = useState(false);
+  const [enableExtraction, setEnableExtraction] = useState(true);
+  const [enableTranscription, setEnableTranscription] = useState(true);
+  const [embyNaming, setEmbyNaming] = useState(false);
   const [allowTitleMatch, setAllowTitleMatch] = useState(false);
   const [useNfo, setUseNfo] = useState(false);
   const [autoSync, setAutoSync] = useState(false);
@@ -181,6 +184,9 @@ export function ConfigPanel({ onProcess, disabled }) {
       Math.abs(vadOffset - (p.vad_offset ?? 0.363)) > 0.001,
       vadModel !== (p.vad_model ?? 'pyannote'),
       fetchInternetSubs !== (p.fetch_internet_subs ?? false),
+      enableExtraction !== (p.enable_extraction ?? true),
+      enableTranscription !== (p.enable_transcription ?? true),
+      embyNaming !== (p.emby_naming ?? false),
       allowTitleMatch !== (p.allow_title_match ?? false),
       useNfo !== (p.use_nfo ?? false),
       autoSync !== (p.auto_sync ?? false),
@@ -226,6 +232,9 @@ export function ConfigPanel({ onProcess, disabled }) {
     setVadModel(p.vad_model);
     setFallbackToTargets(p.fallback_to_targets || false);
     setFetchInternetSubs(p.fetch_internet_subs);
+    setEnableExtraction(p.enable_extraction ?? true);
+    setEnableTranscription(p.enable_transcription ?? true);
+    setEmbyNaming(p.emby_naming ?? false);
     setAllowTitleMatch(p.allow_title_match);
     setUseNfo(p.use_nfo || false);
     setAutoSync(p.auto_sync || false);
@@ -258,6 +267,9 @@ export function ConfigPanel({ onProcess, disabled }) {
       vad_model: vadModel,
       fallback_to_targets: fallbackToTargets,
       fetch_internet_subs: fetchInternetSubs,
+      enable_extraction: enableExtraction,
+      enable_transcription: enableTranscription,
+      emby_naming: embyNaming,
       allow_title_match: allowTitleMatch,
       use_nfo: useNfo,
       auto_sync: autoSync,
@@ -578,6 +590,18 @@ Hardcode: Permanently burns the subtitles into the video (requires re-encoding).
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <input 
               type="checkbox" 
+              checked={enableExtraction} 
+              onChange={e => setEnableExtraction(e.target.checked)} 
+              id="enableExtraction"
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <label htmlFor="enableExtraction" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
+              Extract Embedded Subtitle Tracks
+            </label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <input 
+              type="checkbox" 
               checked={hardcodeSubs} 
               onChange={e => setHardcodeSubs(e.target.checked)} 
               id="hardcodeSubs"
@@ -585,6 +609,18 @@ Hardcode: Permanently burns the subtitles into the video (requires re-encoding).
             />
             <label htmlFor="hardcodeSubs" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
               Hardcode (Burn-in) Subtitles to Output Video
+            </label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <input 
+              type="checkbox" 
+              checked={embyNaming} 
+              onChange={e => setEmbyNaming(e.target.checked)} 
+              id="embyNaming"
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <label htmlFor="embyNaming" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
+              Emby Compatible Naming (.eng.srt)
             </label>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -646,20 +682,35 @@ VAD (Voice Activity Detection): Filters out background noise and non-speech audi
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-          <input 
-            type="checkbox" 
-            checked={useVad} 
-            onChange={e => setUseVad(e.target.checked)} 
-            id="useVadSec"
-            style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-          />
-          <label htmlFor="useVadSec" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
-            Enable VAD (Voice Activity Detection) Filter
-          </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <input 
+              type="checkbox" 
+              checked={enableTranscription} 
+              onChange={e => setEnableTranscription(e.target.checked)} 
+              id="enableTranscription"
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <label htmlFor="enableTranscription" style={{ fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+              Enable AI Transcription
+            </label>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: enableTranscription ? 1 : 0.5, pointerEvents: enableTranscription ? 'auto' : 'none' }}>
+            <input 
+              type="checkbox" 
+              checked={useVad} 
+              onChange={e => setUseVad(e.target.checked)} 
+              id="useVadSec"
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <label htmlFor="useVadSec" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
+              Enable VAD (Voice Activity Detection) Filter
+            </label>
+          </div>
         </div>
 
-        {useVad && (
+        {useVad && enableTranscription && (
           <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>VAD Model Preference</label>
@@ -867,6 +918,9 @@ IMPORTANT: You MUST enable and prioritize your preferred providers (e.g., OpenSu
             llm_model_path: llmModelPath,
             hardcodeSubs: hardcodeSubs,
             fetch_internet_subs: fetchInternetSubs,
+            enable_extraction: enableExtraction,
+            enable_transcription: enableTranscription,
+            emby_naming: embyNaming,
             allow_title_match: allowTitleMatch,
             use_nfo: useNfo,
             auto_sync: autoSync,

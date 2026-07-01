@@ -10,7 +10,7 @@ import threading
 import asyncio
 import re
 from services.job_manager import job_manager, JobStatus
-from services.path_bridge import to_local_path, IS_WSL
+
 from services.model_manager import ModelManager
 
 
@@ -176,6 +176,9 @@ class JobCreateRequest(BaseModel):
     vad_onset: float = 0.500
     vad_offset: float = 0.363
     vad_model: str = "pyannote"
+    enable_extraction: bool = True
+    enable_transcription: bool = True
+    emby_naming: bool = False
 
 def is_video_file(filename: str) -> bool:
     ext = Path(filename).suffix.lower()
@@ -185,11 +188,7 @@ def is_video_file(filename: str) -> bool:
 def create_jobs(request: JobCreateRequest):
     raw_path = request.path
     print(f"\n[API] Received Batch Processing Request for path: {raw_path}")
-    if IS_WSL:
-        print(f"[API] WSL mode active — translating Windows path to WSL path")
-
-    # Translate Windows paths to WSL /mnt/... paths when running inside WSL
-    local_path_str = to_local_path(raw_path)
+    local_path_str = raw_path
     target_dir = Path(local_path_str)
 
     if not target_dir.exists():
@@ -222,7 +221,10 @@ def create_jobs(request: JobCreateRequest):
             vad_offset=request.vad_offset,
             vad_model=request.vad_model,
             fetch_all_available=request.fetch_all_available,
-            llm_model_path=request.llm_model_path
+            llm_model_path=request.llm_model_path,
+            enable_extraction=request.enable_extraction,
+            enable_transcription=request.enable_transcription,
+            emby_naming=request.emby_naming
         )
         created_jobs.append(job)
     elif target_dir.is_dir():
@@ -260,7 +262,10 @@ def create_jobs(request: JobCreateRequest):
                 vad_offset=request.vad_offset,
                 vad_model=request.vad_model,
                 fetch_all_available=request.fetch_all_available,
-                llm_model_path=request.llm_model_path
+                llm_model_path=request.llm_model_path,
+                enable_extraction=request.enable_extraction,
+                enable_transcription=request.enable_transcription,
+                emby_naming=request.emby_naming
             )
             created_jobs.append(job)
     else:

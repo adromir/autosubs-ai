@@ -4,7 +4,7 @@ services:
   autosubs-rocm:
     build:
       context: .
-      dockerfile: docker/Dockerfile.rocm
+      dockerfile: Dockerfile.rocm
     profiles: ["rocm"]
     ports:
       - "8000:8000"
@@ -23,7 +23,7 @@ services:
   autosubs-cuda:
     build:
       context: .
-      dockerfile: docker/Dockerfile.cuda
+      dockerfile: Dockerfile.cuda
     profiles: ["cuda"]
     ports:
       - "8000:8000"
@@ -45,7 +45,7 @@ services:
   autosubs-directml:
     build:
       context: .
-      dockerfile: docker/Dockerfile.directml
+      dockerfile: Dockerfile.directml
     profiles: ["directml"]
     ports:
       - "8000:8000"
@@ -59,7 +59,7 @@ services:
   autosubs-cpu:
     build:
       context: .
-      dockerfile: docker/Dockerfile.cpu
+      dockerfile: Dockerfile.cpu
     profiles: ["cpu"]
     ports:
       - "8000:8000"

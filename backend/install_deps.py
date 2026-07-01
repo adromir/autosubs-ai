@@ -6,6 +6,25 @@ import shutil
 import importlib.util
 import pathlib
 import re
+import json
+
+CONFIG_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "installer_config.json"))
+
+def load_config():
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_config(config):
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4)
+    except Exception as e:
+        print(f"  [Warning] Failed to save config: {e}")
 
 def colored_print(text, color_num):
     print(f"\033[38;5;{color_num}m{text}\033[0m")
@@ -40,7 +59,7 @@ def patch_whisperx_metadata(pip_exe):
     print("\n[Surgery] Patching WhisperX metadata to satisfy the pip resolver...")
     try:
         # Get site-packages directory from the environment
-        script = "import site; print(site.getsitepackages()[0])"
+        script = "import sysconfig; print(sysconfig.get_paths()['purelib'])"
         output = subprocess.check_output([pip_exe.replace("pip", "python"), "-c", script], text=True).strip()
         site_packages = pathlib.Path(output)
 
@@ -59,6 +78,7 @@ def patch_whisperx_metadata(pip_exe):
                 original_text = text
                 text = re.sub(r'Requires-Dist: torch \(~=2\.8\.0\)', 'Requires-Dist: torch (>=2.8.0)', text)
                 text = re.sub(r'Requires-Dist: torchaudio \(~=2\.8\.0\)', 'Requires-Dist: torchaudio (>=2.8.0)', text)
+                text = re.sub(r'Requires-Dist: ctranslate2\b.*', 'Requires-Dist: ctranslate2 (>=4.0.0)', text)
                 
                 if text != original_text:
                     metadata_file.write_text(text, encoding="utf-8")
@@ -135,9 +155,14 @@ def check_compiler_present():
         return shutil.which("g++") is not None or shutil.which("clang++") is not None
 
 
-def prompt_provider_choice(has_amd, has_nvidia):
+def prompt_provider_choice(has_amd, has_nvidia, config):
     """Ask the user which provider to install. Returns the raw choice string."""
     opt_sys = platform.system()
+
+    if "provider_choice" in config:
+        choice = config["provider_choice"]
+        colored_print(f"\n[Auto-Config] Using saved Provider Choice: [{choice}]", 10)
+        return choice
 
     os.system('cls' if os.name == 'nt' else 'clear')
     colored_print("=========================================", 14)
@@ -157,7 +182,6 @@ def prompt_provider_choice(has_amd, has_nvidia):
             colored_print("       Best options:", 14)
             colored_print("         [1] ROCm 7.2  -- RECOMMENDED  (Faster-Whisper & WhisperX, native Windows, ctranslate2 ROCm)", 10)
             colored_print("         [4] DirectML  -- Simpler setup, Transformers engine only", 14)
-            colored_print("         [6] WSL ROCm  -- Advanced: runs backend inside WSL2 Ubuntu", 14)
     else:
         colored_print("   --> No dedicated GPU detected.", 10)
         colored_print("       Recommended: [5] CPU  (Faster-Whisper INT8, no GPU required)", 14)
@@ -169,20 +193,19 @@ def prompt_provider_choice(has_amd, has_nvidia):
     print("  [3]  NVIDIA CUDA 11.8         - Older NVIDIA GPUs (all engines)")
     print("  [4]  DirectML                 - Windows AMD/Intel/NVIDIA (Transformers engine only)")
     print("  [5]  CPU Only                 - No GPU, universal fallback")
-    if opt_sys == "Windows":
-        print("  [6]  WSL ROCm [Advanced]     - Backend inside WSL2 Ubuntu (alternative, not needed)")
     print()
 
     try:
-        choice = input("Enter your choice (1-6): ").strip()
+        choice = input("Enter your choice (1-5): ").strip()
     except KeyboardInterrupt:
         print("\nInstallation cancelled.")
         sys.exit(0)
 
+    config["provider_choice"] = choice
     return choice
 
 
-def prompt_venv_setup() -> str:
+def prompt_venv_setup(config) -> str:
     """
     Ask whether to create a virtual environment.
     Returns the Python executable to use for subsequent pip calls
@@ -190,14 +213,20 @@ def prompt_venv_setup() -> str:
     Does NOT restart the script.
     """
     print("\n--- Virtual Environment ---")
-    print("It is recommended to install dependencies inside a virtual environment.")
-    try:
-        ans = input("Create and use a venv in './venv'? (Y/n): ").strip().lower()
-    except KeyboardInterrupt:
-        print("\nInstallation cancelled.")
-        sys.exit(0)
+    if "use_venv" in config:
+        use_venv = config["use_venv"]
+        colored_print(f"  [Auto-Config] Using saved Venv setup preference: {'Yes' if use_venv else 'No'}", 10)
+    else:
+        print("It is recommended to install dependencies inside a virtual environment.")
+        try:
+            ans = input("Create and use a venv in './venv'? (Y/n): ").strip().lower()
+        except KeyboardInterrupt:
+            print("\nInstallation cancelled.")
+            sys.exit(0)
+        use_venv = ans in ("", "y", "yes")
+        config["use_venv"] = use_venv
 
-    if ans in ("", "y", "yes"):
+    if use_venv:
         venv_dir = os.path.normpath(
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "venv")
         )
@@ -216,17 +245,31 @@ def prompt_venv_setup() -> str:
         return sys.executable
 
 
-def prompt_auth_setup():
+def prompt_auth_setup(config):
     """Optionally configure HTTP basic auth for the API."""
     print("\n--- API Authentication ---")
-    print("You can protect the web interface with a username and password.")
-    try:
-        ans = input("Enable HTTP authentication? (y/N): ").strip().lower()
-    except KeyboardInterrupt:
-        print("\nInstallation cancelled.")
-        sys.exit(0)
+    if "enable_auth" in config:
+        enable_auth = config["enable_auth"]
+        colored_print(f"  [Auto-Config] Using saved Auth setup preference: {'Yes' if enable_auth else 'No'}", 10)
+    else:
+        print("You can protect the web interface with a username and password.")
+        try:
+            ans = input("Enable HTTP authentication? (y/N): ").strip().lower()
+        except KeyboardInterrupt:
+            print("\nInstallation cancelled.")
+            sys.exit(0)
+        enable_auth = ans in ("y", "yes")
+        config["enable_auth"] = enable_auth
 
-    if ans in ("y", "yes"):
+    if enable_auth:
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        if os.path.exists(env_path):
+            with open(env_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            if "AUTH_USERNAME=" in content:
+                print("  Auth credentials already exist in .env. Skipping prompt.")
+                return
+
         try:
             username = input("  Username: ").strip()
             password = input("  Password: ").strip()
@@ -242,68 +285,27 @@ def prompt_auth_setup():
         print("  Skipping authentication setup.")
 
 
-def install_wsl_option():
-    """Handle option 6: launch the WSL ROCm installer via PowerShell."""
-    if platform.system() != "Windows":
-        colored_print("ERROR: WSL option is only available on Windows.", 9)
-        sys.exit(1)
 
-    # Check WSL availability by looking for wsl.exe — do NOT use 'wsl --status'
-    # because it exits with code 1 if no distro is installed yet, even when WSL IS available.
-    import shutil
-    if shutil.which("wsl") is None:
-        colored_print("ERROR: wsl.exe not found in PATH. Enable WSL via:", 9)
-        colored_print("  Windows Settings -> Turn Windows features on -> Windows Subsystem for Linux", 14)
-        sys.exit(1)
-
-    ps_script = os.path.normpath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "Install-WSL-Backend.ps1")
-    )
-    if not os.path.exists(ps_script):
-        colored_print(f"ERROR: Installer script not found at: {ps_script}", 9)
-        sys.exit(1)
-
-    colored_print(f"Running: {ps_script}", 14)
-    subprocess.call(["powershell", "-ExecutionPolicy", "Bypass", "-File", ps_script])
-    print("\n=========================================")
-    colored_print("WSL ROCm setup complete.", 10)
-    print("Start the backend via start.bat -> option [2]")
 
 
 def install():
+    config = load_config()
     has_amd, has_nvidia = autodetect_hardware()
 
     # ── Step 1: choose provider ──────────────────────────────────────────────
-    choice = prompt_provider_choice(has_amd, has_nvidia)
+    choice = prompt_provider_choice(has_amd, has_nvidia, config)
 
-    # ── Step 2: WSL — skip ALL Windows-side installation entirely ────────────
-    if choice == "6":
-        colored_print("\n>>> Launching WSL ROCm Backend Installer...", 10)
-        print("\nAll dependencies will be installed inside WSL. Nothing will be installed in Windows Python.")
-        install_wsl_option()
-        # Exit with code 2 so install.bat knows to skip frontend/Windows-side steps
-        sys.exit(2)
-
-
-    # ── Step 3: venv and auth (after choice, never for WSL) ──────────────────
-    pip_exe = prompt_venv_setup()   # returns either venv python or sys.executable
-    prompt_auth_setup()
+    # ── Step 2: venv and auth ──────────────────
+    pip_exe = prompt_venv_setup(config)   # returns either venv python or sys.executable
+    prompt_auth_setup(config)
     
     constraints_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "constraints.txt")
 
     # ── Step 4: install base backend packages ─────────────────────────────────
-    base_deps = [
-        "fastapi>=0.110.0", "uvicorn>=0.31.1", "ffmpeg-python==0.2.0",
-        "transformers>=4.40.0", "accelerate>=0.28.0", "pysubs2>=1.7.0",
-        "sse-starlette>=2.0.0", "pydantic>=2.7.0", "python-multipart>=0.0.9",
-        "python-dotenv>=1.0.1", "hf-transfer>=0.1.9", "huggingface_hub",
-        "requests", "plyer", "pandas==2.2.3", "nltk>=3.8.1", "av==15.1.0", "tokenizers", "onnxruntime",
-        "subliminal==2.6.0", "babelfish", "ffsubsync", "charset-normalizer", "silero-vad", "ninja",
-        "omegaconf>=2.3.0", "pyannote-audio>=4.0.0"
-    ]
+    requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
 
     print("\n[1/2] Installing base dependencies...")
-    subprocess.check_call([pip_exe, "-m", "pip", "install", "--upgrade", "-c", constraints_path] + base_deps)
+    subprocess.check_call([pip_exe, "-m", "pip", "install", "--upgrade", "-c", constraints_path, "-r", requirements_path])
 
     print("\nRemoving old torch installations to prevent conflicts...")
     subprocess.call([pip_exe, "-m", "pip", "uninstall", "-y",
@@ -327,6 +329,29 @@ def install():
             if gfx_arch and hsa_override:
                 colored_print(f"\n  [Auto] Detected GPU Architecture: {gfx_arch} (HSA Override: {hsa_override})", 10)
             else:
+                if "gpu_choice" in config:
+                    gpu_choice = config["gpu_choice"]
+                    colored_print(f"\n  [Auto-Config] Using saved GPU model choice: [{gpu_choice}]", 10)
+                else:
+                    GPU_MAP = {
+                        "1": ("RX 9070 / 9070 XT",  "gfx1201", "12.0.1"),
+                        "2": ("RX 9060 (XT)",         "gfx1200", "12.0.0"),
+                        "3": ("RX 7900 XTX/XT",       "gfx1100", "11.0.0"),
+                        "4": ("RX 7800/7700 XT",       "gfx1101", "11.0.1"),
+                        "5": ("RX 7600",               "gfx1102", "11.0.2"),
+                        "6": ("RX 6900/6800/6700 XT",  "gfx1030", "10.3.0"),
+                        "7": ("RX 6600",               "gfx1032", "10.3.2"),
+                    }
+                    print("\n  Select your AMD GPU model:")
+                    for k, (name, gfx, hsa) in GPU_MAP.items():
+                        print(f"    [{k}] {name}  ({gfx})")
+                    try:
+                        gpu_choice = input("  Enter number: ").strip()
+                    except KeyboardInterrupt:
+                        gpu_choice = "2"  # default to RX 9060 XT
+                    config["gpu_choice"] = gpu_choice
+                
+                # We need GPU_MAP regardless of branch now to resolve the choice
                 GPU_MAP = {
                     "1": ("RX 9070 / 9070 XT",  "gfx1201", "12.0.1"),
                     "2": ("RX 9060 (XT)",         "gfx1200", "12.0.0"),
@@ -336,13 +361,6 @@ def install():
                     "6": ("RX 6900/6800/6700 XT",  "gfx1030", "10.3.0"),
                     "7": ("RX 6600",               "gfx1032", "10.3.2"),
                 }
-                print("\n  Select your AMD GPU model:")
-                for k, (name, gfx, hsa) in GPU_MAP.items():
-                    print(f"    [{k}] {name}  ({gfx})")
-                try:
-                    gpu_choice = input("  Enter number: ").strip()
-                except KeyboardInterrupt:
-                    gpu_choice = "2"  # default to RX 9060 XT
                 gpu_name, gfx_arch, hsa_override = GPU_MAP.get(gpu_choice, ("RX 9060 XT", "gfx1200", "12.0.0"))
                 colored_print(f"  Selected: {gpu_name} → HSA_OVERRIDE_GFX_VERSION={hsa_override}", 10)
 
@@ -538,9 +556,10 @@ def install():
             subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
 
     # ── Step 7: done ─────────────────────────────────────────────────────────
+    save_config(config)
     print("\n=========================================")
     colored_print("Installation Complete!", 10)
-    print("Start the app with: start.bat")
+    print("Start the app with: AutoSubsLauncher.bat or AutoSubsLauncher.sh")
 
 
 if __name__ == "__main__":

@@ -33,6 +33,9 @@ class ProfileData(BaseModel):
     fetch_all_available: bool = False
     is_default: bool = False
     llm_model_path: str = ""
+    enable_extraction: bool = True
+    enable_transcription: bool = True
+    emby_naming: bool = False
 
 class RenameRequest(BaseModel):
     old_name: str
