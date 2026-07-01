@@ -78,28 +78,7 @@ app = FastAPI(title="Subtitle Generator API", lifespan=lifespan)
 import base64
 from fastapi import Request
 from fastapi.responses import Response
-AUTH_USERNAME = os.getenv("AUTH_USERNAME")
-AUTH_PASSWORD = os.getenv("AUTH_PASSWORD")
-
-@app.middleware("http")
-async def basic_auth_middleware(request: Request, call_next):
-    if AUTH_USERNAME and AUTH_PASSWORD:
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith("Basic "):
-            return Response("Unauthorized", status_code=401, headers={"WWW-Authenticate": "Basic realm=\"AutoSubs\""})
-        
-        encoded_credentials = auth_header.split(" ")[1]
-        try:
-            decoded_bytes = base64.b64decode(encoded_credentials)
-            decoded_string = decoded_bytes.decode("utf-8")
-            username, password = decoded_string.split(":", 1)
-        except Exception:
-            return Response("Invalid credentials", status_code=401, headers={"WWW-Authenticate": "Basic realm=\"AutoSubs\""})
-            
-        if username != AUTH_USERNAME or password != AUTH_PASSWORD:
-            return Response("Invalid credentials", status_code=401, headers={"WWW-Authenticate": "Basic realm=\"AutoSubs\""})
-            
-    return await call_next(request)
+# Basic Auth Middleware Removed - Using Bearer Token Dependency
 
 # Configure CORS for Vite frontend
 app.add_middleware(
@@ -110,7 +89,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix="/api")
+from fastapi import Depends
+from api.auth import router as auth_router, verify_token
+
+app.include_router(auth_router, prefix="/api/auth")
+app.include_router(api_router, prefix="/api", dependencies=[Depends(verify_token)])
+
 def health_check():
     return {"status": "ok"}
 
@@ -121,16 +105,16 @@ from fastapi.responses import FileResponse
 
 
 from api.settings import router as settings_router
-app.include_router(settings_router, prefix="/api/settings")
+app.include_router(settings_router, prefix="/api/settings", dependencies=[Depends(verify_token)])
 
 from api.console import router as console_router
-app.include_router(console_router, prefix="/api/console")
+app.include_router(console_router, prefix="/api/console", dependencies=[Depends(verify_token)])
 
 from api.profiles import router as profiles_router
-app.include_router(profiles_router, prefix="/api/profiles")
+app.include_router(profiles_router, prefix="/api/profiles", dependencies=[Depends(verify_token)])
 
 from api.llm import router as llm_router
-app.include_router(llm_router, prefix="/api/llm")
+app.include_router(llm_router, prefix="/api/llm", dependencies=[Depends(verify_token)])
 
 # Serve the frontend statically
 # The Dockerfile will copy the built frontend to /app/frontend/dist

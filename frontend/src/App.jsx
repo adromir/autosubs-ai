@@ -4,8 +4,34 @@ import { ConfigPanel } from './components/ConfigPanel';
 import { JobQueue } from './components/JobQueue';
 import { Settings } from './components/Settings';
 import { ConsoleLog } from './components/ConsoleLog';
-import { Tv, Settings as SettingsIcon, ArrowLeft, Terminal, RefreshCw } from 'lucide-react';
+import { Login } from './components/Login';
+import { Tv, Settings as SettingsIcon, ArrowLeft, Terminal, RefreshCw, LogOut } from 'lucide-react';
 import './App.css';
+
+// Intercept global fetch to add Auth header
+const originalFetch = window.fetch;
+window.fetch = async function () {
+  let [resource, config] = arguments;
+  
+  if (typeof resource === 'string' && resource.startsWith('/api') && !resource.startsWith('/api/auth/login')) {
+    const token = localStorage.getItem('api_token');
+    if (token) {
+      if (!config) config = {};
+      if (!config.headers) config.headers = {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  
+  const response = await originalFetch(resource, config);
+  
+  // If we hit a 401 on an API route, trigger a logout
+  if (response.status === 401 && typeof resource === 'string' && resource.startsWith('/api') && !resource.startsWith('/api/auth/login')) {
+    localStorage.removeItem('api_token');
+    window.dispatchEvent(new Event('auth-expired'));
+    }
+  
+  return response;
+};
 
 function App() {
   const [selectedPath, setSelectedPath] = useState(null);
@@ -14,9 +40,24 @@ function App() {
   const [restarting, setRestarting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('api_token'));
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/jobs/stream');
+    const handleAuthExpired = () => setIsAuthenticated(false);
+    window.addEventListener('auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('auth-expired', handleAuthExpired);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('api_token');
+    setIsAuthenticated(false);
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const token = localStorage.getItem('api_token');
+    const eventSource = new EventSource(`/api/jobs/stream?token=${encodeURIComponent(token)}`);
     
     eventSource.onmessage = (event) => {
       const msg = JSON.parse(event.data);
@@ -45,7 +86,11 @@ function App() {
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   const handleRestart = async () => {
     if (!window.confirm("Are you sure you want to restart the backend server? Active transcriptions will be interrupted.")) return;
@@ -104,9 +149,6 @@ function App() {
     }
   };
 
-  const isProcessing = jobs.some(j => !['completed', 'failed', 'cancelled', 'pending'].includes(j.status));
-  // We include 'pending' in NOT being processing, but wait, the user wants it disabled until finished.
-  // Actually, 'pending' means it's in the queue ready to start. If we want it disabled until the ENTIRE queue is done:
   const isBusy = jobs.some(j => !['completed', 'failed', 'cancelled'].includes(j.status));
 
   return (
@@ -138,6 +180,13 @@ function App() {
                 <Tv size={20} /> Dashboard
               </button>
             )}
+            <button
+              onClick={handleLogout}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-red-400 hover:bg-gray-800`}
+            >
+              <LogOut className="w-5 h-5" />
+              Sign Out
+            </button>
           </div>
 
           {/* Group 2: Server Control (Semantically Grouped) */}

@@ -10,11 +10,16 @@ services:
       - "8000:8000"
     environment:
       - TZ=UTC
-      # Uncomment and set below to enable Basic Authentication Web Login
-      # - AUTH_USERNAME=admin
-      # - AUTH_PASSWORD=secret
+      # The installer creates these automatically. If deploying directly via Docker, set them manually:
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=secret
+      # - API_TOKEN=optional_static_key
     volumes:
       - .:/app/data
+      # Map your media folders here:
+      # - /mnt/user/movies:/movies
+      # - /mnt/user/tvshows:/tv
+      
       # Native ROCm on Linux mapping:
       # devices:
       #   - /dev/kfd:/dev/kfd
@@ -29,11 +34,13 @@ services:
       - "8000:8000"
     environment:
       - TZ=UTC
-      # Uncomment and set below to enable Basic Authentication Web Login
-      # - AUTH_USERNAME=admin
-      # - AUTH_PASSWORD=secret
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=secret
     volumes:
       - .:/app/data
+      # Map your media folders here:
+      # - /mnt/user/movies:/movies
+      # - /mnt/user/tvshows:/tv
     deploy:
       resources:
         reservations:
@@ -51,10 +58,13 @@ services:
       - "8000:8000"
     environment:
       - TZ=UTC
-      # - AUTH_USERNAME=admin
-      # - AUTH_PASSWORD=secret
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=secret
     volumes:
       - .:/app/data
+      # Map your media folders here:
+      # - /mnt/user/movies:/movies
+      # - /mnt/user/tvshows:/tv
 
   autosubs-cpu:
     build:
@@ -65,7 +75,10 @@ services:
       - "8000:8000"
     environment:
       - TZ=UTC
-      # - AUTH_USERNAME=admin
-      # - AUTH_PASSWORD=secret
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=secret
     volumes:
       - .:/app/data
+      # Map your media folders here:
+      # - /mnt/user/movies:/movies
+      # - /mnt/user/tvshows:/tv

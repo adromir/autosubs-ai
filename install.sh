@@ -46,6 +46,33 @@ install_standard() {
         return
     fi
 
+    echo -e "\n\033[1;36m[INFO] Securing your Installation...\033[0m"
+    echo "You must configure an administrator account for the Web UI."
+    while true; do
+        read -p "Username: " AUTH_USERNAME
+        if [ -n "$AUTH_USERNAME" ]; then
+            break
+        fi
+        echo "Username cannot be empty."
+    done
+    while true; do
+        read -s -p "Password: " AUTH_PASSWORD
+        echo ""
+        if [ -n "$AUTH_PASSWORD" ]; then
+            break
+        fi
+        echo "Password cannot be empty."
+    done
+    
+    # Run using the newly created virtual environment
+    ./venv/bin/python backend/set_credentials.py "$AUTH_USERNAME" "$AUTH_PASSWORD"
+    if [ $? -ne 0 ]; then
+        echo -e "\033[1;31m[ERROR] Failed to save credentials to .env\033[0m"
+        read -p "Press Enter to return to menu"
+        return
+    fi
+
+
     echo -e "\n\033[1;36m[INFO] Installing Frontend UI Dependencies...\033[0m"
     cd frontend
     npm install

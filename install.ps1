@@ -39,6 +39,31 @@ function Install-Standard {
         exit 1
     }
 
+    Write-Host "`n[INFO] Securing your Installation..." -ForegroundColor Cyan
+    Write-Host "You must configure an administrator account for the Web UI."
+    $AUTH_USERNAME = ""
+    while ([string]::IsNullOrWhiteSpace($AUTH_USERNAME)) {
+        $AUTH_USERNAME = Read-Host "Username"
+        if ([string]::IsNullOrWhiteSpace($AUTH_USERNAME)) { Write-Host "Username cannot be empty." -ForegroundColor Yellow }
+    }
+
+    $AUTH_PASSWORD = ""
+    while ([string]::IsNullOrWhiteSpace($AUTH_PASSWORD)) {
+        $secPassword = Read-Host "Password" -AsSecureString
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secPassword)
+        $AUTH_PASSWORD = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+        if ([string]::IsNullOrWhiteSpace($AUTH_PASSWORD)) { Write-Host "Password cannot be empty." -ForegroundColor Yellow }
+    }
+
+    & .\venv\Scripts\python.exe backend\set_credentials.py $AUTH_USERNAME $AUTH_PASSWORD
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Failed to save credentials to .env" -ForegroundColor Red
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
+
+
     Write-Host "`n[INFO] Installing Frontend UI Dependencies..." -ForegroundColor Cyan
     Push-Location frontend
     npm install

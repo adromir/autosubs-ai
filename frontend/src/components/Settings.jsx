@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings as SettingsIcon, Shield, Server, Bell, Search,
   Globe, ArrowUp, ArrowDown, Check, X, Info,
-  Cpu, Download, Database, RefreshCw, Trash2, Plus
+  Cpu, Download, Database, RefreshCw, Trash2, Plus, Key, Copy
 } from 'lucide-react';
 import { Modal } from './Modal';
 import { FolderBrowser } from './FolderBrowser';
@@ -171,8 +171,15 @@ export function Settings() {
   const [cleaning, setCleaning] = useState(false);
   const [cleanupStatus, setCleanupStatus] = useState('');
 
+  // Local state for API Token display
+  const [apiToken, setApiToken] = useState('');
+  const [tokenCopied, setTokenCopied] = useState(false);
+
   // ─── Data loading ─────────────────────────────────────────────────────────
   useEffect(() => {
+    // Read the static token stored by App.jsx
+    setApiToken(localStorage.getItem('api_token') || '');
+
     fetch('/api/settings/hf-token')
       .then(r => r.ok && r.headers.get('content-type')?.includes('application/json') ? r.json() : Promise.reject())
       .then(d => { if (d?.token) setHfToken('*'.repeat(d.token.length)); })
@@ -567,7 +574,50 @@ export function Settings() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            4. SYSTEM MAINTENANCE
+            4. API ACCESS
+        ════════════════════════════════════════════════════════════════ */}
+        <section style={S.section}>
+          <div style={S.sectionHeader}>
+            <Key size={20} color="var(--primary)" />
+            <h3 style={S.sectionTitle}>API Access</h3>
+          </div>
+          <p style={S.sectionDesc}>
+            Use this secure token to authenticate with AutoSubs AI from external applications like Sonarr/Radarr webhooks.
+          </p>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={S.label}>Static API Token</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="text-input"
+                value={apiToken}
+                readOnly
+                style={{ flex: 1, color: 'var(--text-muted)', cursor: 'default' }}
+              />
+              <button
+                onClick={handleCopyToken}
+                style={{
+                  padding: '0 1rem',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  whiteSpace: 'nowrap',
+                  background: tokenCopied ? 'var(--success)' : 'var(--bg-lighter)',
+                  color: tokenCopied ? '#000' : 'var(--text-color)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                {tokenCopied ? <Check size={15} /> : <Copy size={15} />}
+                {tokenCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            5. SYSTEM MAINTENANCE
         ════════════════════════════════════════════════════════════════ */}
         <section style={S.section}>
           <div style={S.sectionHeader}>
