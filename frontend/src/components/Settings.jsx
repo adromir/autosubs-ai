@@ -650,7 +650,7 @@ export function Settings() {
               <input
                 type="text"
                 className="text-input"
-                placeholder="e.g. bartowski/Qwen_Qwen3.5-9B-GGUF"
+                placeholder="e.g. bartowski/Qwen_Qwen3.6-9B-GGUF"
                 value={customRepo}
                 onChange={(e) => setCustomRepo(e.target.value)}
                 style={{ flex: 1 }}

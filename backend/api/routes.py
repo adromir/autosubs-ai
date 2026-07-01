@@ -64,9 +64,16 @@ def browse_directory(path: Optional[str] = None):
 
 @router.get("/config/models")
 def get_models():
-    return {
-        "models": ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v2", "large-v3", "large-v3-turbo"]
-    }
+    models_file = Path(__file__).parent.parent / "data" / "available_models.json"
+    default_models = ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v2", "large-v3", "large-v3-turbo"]
+    try:
+        if models_file.exists():
+            with open(models_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return {"models": data.get("whisper_models", default_models)}
+    except Exception as e:
+        print(f"Error reading available_models.json: {e}")
+    return {"models": default_models}
 
 @router.get("/config/hardware")
 def get_hardware():

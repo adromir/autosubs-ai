@@ -14,41 +14,67 @@ class LLMManager:
         self.custom_models = self._load_custom_models()
         self.api = HfApi()
         
-        # Curated list of recommended translation models (GGUF)
-        self.RECOMMENDED_MODELS = [
-            {
-                "id": "llama-3-8b-instruct",
-                "name": "Meta Llama 3 (8B Instruct)",
-                "repo": "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF",
-                "file": "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf",
-                "size": "4.9 GB",
-                "description": "State-of-the-art general purpose model. Excellent for translation."
-            },
-            {
-                "id": "phi-3-mini-4k",
-                "name": "Phi-3 Mini (3.8B)",
-                "repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
-                "file": "Phi-3-mini-4k-instruct-q4.gguf",
-                "size": "2.4 GB",
-                "description": "Fast and efficient. Ideal for lower VRAM cards."
-            },
-            {
-                "id": "gemma-2-9b",
-                "name": "Google Gemma 2 (9B)",
-                "repo": "google/gemma-2-9b-it-GGUF",
-                "file": "gemma-2-9b-it-Q4_K_M.gguf",
-                "size": "5.4 GB",
-                "description": "Latest Google model. Very high translation quality."
-            },
-            {
-                "id": "qwen-3.5-9b",
-                "name": "Alibaba Qwen 3.5 (9B)",
-                "repo": "bartowski/Qwen_Qwen3.5-9B-GGUF",
-                "file": "Qwen_Qwen3.5-9B-Q4_K_M.gguf",
-                "size": "5.6 GB",
-                "description": "Superior translation for Qwen series, high-performance 9B model."
-            }
-        ]
+        self.RECOMMENDED_MODELS = self._load_available_models()["llm_models"]
+
+    def _load_available_models(self) -> Dict:
+        models_file = self.cache_dir.parent.parent / "data" / "available_models.json"
+        
+        default_data = {
+            "whisper_models": [
+                "tiny", "tiny.en", "base", "base.en", "small", "small.en", 
+                "medium", "medium.en", "large", "large-v2", "large-v3", "large-v3-turbo"
+            ],
+            "llm_models": [
+                {
+                    "id": "llama-3-8b-instruct",
+                    "name": "Meta Llama 3 (8B Instruct)",
+                    "repo": "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF",
+                    "file": "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf",
+                    "size": "4.9 GB",
+                    "description": "State-of-the-art general purpose model. Excellent for translation."
+                },
+                {
+                    "id": "phi-3-mini-4k",
+                    "name": "Phi-3 Mini (3.8B)",
+                    "repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
+                    "file": "Phi-3-mini-4k-instruct-q4.gguf",
+                    "size": "2.4 GB",
+                    "description": "Fast and efficient. Ideal for lower VRAM cards."
+                },
+                {
+                    "id": "gemma-4-9b",
+                    "name": "Google Gemma 4 (9B)",
+                    "repo": "google/gemma-4-9b-it-GGUF",
+                    "file": "gemma-4-9b-it-Q4_K_M.gguf",
+                    "size": "5.4 GB",
+                    "description": "Latest Google model. Very high translation quality."
+                },
+                {
+                    "id": "qwen-3.6-9b",
+                    "name": "Alibaba Qwen 3.6 (9B)",
+                    "repo": "bartowski/Qwen_Qwen3.6-9B-GGUF",
+                    "file": "Qwen_Qwen3.6-9B-Q4_K_M.gguf",
+                    "size": "5.6 GB",
+                    "description": "Superior translation for Qwen series, high-performance 9B model."
+                }
+            ]
+        }
+
+        if not models_file.exists():
+            models_file.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with open(models_file, "w", encoding="utf-8") as f:
+                    json.dump(default_data, f, indent=4)
+            except Exception as e:
+                print(f"Error creating default models config: {e}")
+            return default_data
+            
+        try:
+            with open(models_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading models config: {e}")
+            return default_data
 
     def _load_custom_models(self) -> List[Dict]:
         if not self.config_path.exists():
