@@ -393,12 +393,29 @@ def install():
             patch_whisperx_metadata(pip_exe)
 
             subprocess.call([pip_exe, "-m", "pip", "uninstall", "-y", "ctranslate2"])
-            ct2_whl = f"https://github.com/sssshhhhhh/CTranslate2/releases/download/v4.7.1-rocm/ctranslate2-4.7.1-{py_ver}-{py_ver}-win_amd64.whl"
-            colored_print(f"\n[ROCm] Installing verified ctranslate2 4.7.1 ROCm wheel in final state...", 14)
+            colored_print(f"\n[ROCm] Installing official ctranslate2 4.8.0 ROCm wheel in final state...", 14)
             try:
+                import urllib.request
+                import zipfile
+                zip_url = "https://github.com/OpenNMT/CTranslate2/releases/download/v4.8.0/rocm-python-wheels-Windows.zip"
+                zip_path = os.path.join(os.path.dirname(pip_exe), "ct2_wheels.zip")
+                urllib.request.urlretrieve(zip_url, zip_path)
+                extract_dir = os.path.join(os.path.dirname(pip_exe), "ct2_wheels")
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                
+                import glob
+                ct2_whl_list = glob.glob(os.path.join(extract_dir, "**", f"ctranslate2-4.8.0-{py_ver}-*.whl"), recursive=True)
+                if not ct2_whl_list:
+                    raise FileNotFoundError(f"Wheel not found for {py_ver}")
+                ct2_whl = ct2_whl_list[0]
+                
                 subprocess.check_call([pip_exe, "-m", "pip", "install", "-c", constraints_path, "--no-cache-dir", ct2_whl])
-            except subprocess.CalledProcessError:
-                colored_print("[WARNING] ctranslate2 ROCm wheel download failed — will use default ctranslate2.", 9)
+                
+                os.remove(zip_path)
+                shutil.rmtree(extract_dir)
+            except Exception as e:
+                colored_print(f"[WARNING] ctranslate2 ROCm wheel download/install failed: {e} — will use default ctranslate2.", 9)
                 colored_print("  Faster-Whisper will still work but without ROCm GPU acceleration.", 9)
                 subprocess.check_call([pip_exe, "-m", "pip", "install", "ctranslate2"])
         else:
@@ -416,6 +433,33 @@ def install():
                     "torch", "torchaudio",
                     "--index-url", "https://download.pytorch.org/whl/rocm6.2"
                 ])
+            
+            subprocess.call([pip_exe, "-m", "pip", "uninstall", "-y", "ctranslate2"])
+            colored_print(f"\n[ROCm] Installing official ctranslate2 4.8.0 ROCm wheel for Linux...", 14)
+            try:
+                import urllib.request
+                import zipfile
+                zip_url = "https://github.com/OpenNMT/CTranslate2/releases/download/v4.8.0/rocm-python-wheels-Linux.zip"
+                zip_path = os.path.join(os.path.dirname(pip_exe), "ct2_wheels_linux.zip")
+                urllib.request.urlretrieve(zip_url, zip_path)
+                extract_dir = os.path.join(os.path.dirname(pip_exe), "ct2_wheels_linux")
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                
+                import glob
+                ct2_whl_list = glob.glob(os.path.join(extract_dir, "**", f"ctranslate2-4.8.0-{py_ver}-*.whl"), recursive=True)
+                if not ct2_whl_list:
+                    raise FileNotFoundError(f"Wheel not found for {py_ver}")
+                ct2_whl = ct2_whl_list[0]
+                
+                subprocess.check_call([pip_exe, "-m", "pip", "install", "-c", constraints_path, "--no-cache-dir", ct2_whl])
+                
+                os.remove(zip_path)
+                shutil.rmtree(extract_dir)
+            except Exception as e:
+                colored_print(f"[WARNING] ctranslate2 ROCm wheel download/install failed: {e} — will use default ctranslate2.", 9)
+                colored_print("  Faster-Whisper will still work but without ROCm GPU acceleration.", 9)
+                subprocess.check_call([pip_exe, "-m", "pip", "install", "ctranslate2"])
 
     elif choice == "2":
         colored_print("\n>>> Installing PyTorch for CUDA 12.1...", 10)
@@ -447,77 +491,51 @@ def install():
     # ── Step 6: Install Native LLM (llama-cpp-python) ────────────────────────
     print("\n[3/3] Installing Native LLM Support (llama-cpp-python)...")
     
-    # Check for build tools on Windows before attempt
-    if os.name == 'nt' and not check_compiler_present():
-        colored_print("\n[CRITICAL ERROR] ROCm HIP SDK 7.1 NOT found!", 9)
-        print("To compile 'llama-cpp-python' with ROCm (HIP) support, you MUST have")
-        print("the AMD ROCm 7.1 SDK installed at C:\\Program Files\\AMD\\ROCm\\7.1")
-        print("\nDownload Link:")
-        colored_print("  https://visualstudio.microsoft.com/visual-cpp-build-tools/", 14)
-        print("\nInstructions:")
-        print("  1. Download and run the 'Visual Studio Installer'")
-        print("  2. Select 'Desktop development with C++'")
-        print("  3. Ensure 'MSVC v143' and 'C++ CMake tools for Windows' are checked")
-        print("  4. Restart this installer after installation completes.")
-        print("\nAutoSubs AI will continue, but Native LLM translation will NOT work until this is fixed.")
-        # Proceed to install CPU-only regardless to allow the app to boot
-        subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
-        return 
-
-    # Environment variables for compilation
-    env = os.environ.copy()
-    
     if choice == "1":
-        colored_print("   --> Compiling llama-cpp-python with ROCm (HIPBlast) support (Native Clang)...", 14)
+        colored_print("   --> Installing llama-cpp-python official ROCm wheel...", 14)
+        try:
+            if platform.system() == "Windows":
+                llama_whl = "https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.32-hip-radeon/llama_cpp_python-0.3.32-py3-none-win_amd64.whl"
+            else:
+                llama_whl = "https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.32-hip-radeon/llama_cpp_python-0.3.32-py3-none-manylinux_2_35_x86_64.whl"
+            
+            subprocess.check_call([
+                pip_exe, "-m", "pip", "install", llama_whl, 
+                "--no-cache-dir", "--force-reinstall", "--upgrade"
+            ])
+            colored_print("   --> Native LLM support installed successfully!", 10)
+        except Exception as e:
+            colored_print(f"\n[WARNING] Native LLM wheel installation failed: {e}", 9)
+            colored_print("   AutoSubs AI will fall back to CPU-only NLLB for translations.", 14)
+            subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
+    else:
+        # Check for build tools on Windows before attempt
+        if choice in ["2", "3"] and os.name == 'nt' and not check_compiler_present():
+            colored_print("\n[CRITICAL ERROR] Compiler NOT found!", 9)
+            print("To compile 'llama-cpp-python' with GPU support, you MUST have the correct compiler installed.")
+            # Proceed to install CPU-only regardless to allow the app to boot
+            subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
+            return 
+
+        # Environment variables for compilation
+        env = os.environ.copy()
         
-        # Explicitly inject ROCm 7.1 Binaries into PATH for compilation discovery
-        rocm_root = r"C:\Program Files\AMD\ROCm\7.1"
-        rocm_bin = os.path.join(rocm_root, "bin")
+        if choice in ["2", "3"]:
+            colored_print("   --> Compiling llama-cpp-python with CUDA support...", 14)
+            env["CMAKE_ARGS"] = "-DLLAMA_CUDA=ON"
         
-        # Only inject if path exists (installer-side check)
-        if os.path.exists(rocm_bin):
-            env["PATH"] = rocm_bin + os.pathsep + env.get("PATH", "")
-            colored_print(f"   --> Injected {rocm_bin} into PATH for build step.", 10)
-        else:
-            colored_print(f"\n[CRITICAL ERROR] ROCm 7.1 Binaries NOT found at {rocm_bin}!", 9)
-            return
-        
-        gfx_arch, hsa_override = autodetect_rocm_gfx()
-        if not gfx_arch:
-            gfx_arch = "gfx1200" # fallback if autodetection fails entirely
-        
-        if "AMDGPU_TARGETS" in os.environ:
-            gfx_arch = os.environ["AMDGPU_TARGETS"]
-        
-        # Explicitly point to ROCm Clang to bypass MSVC for .cu/.cpp files
-        c_compiler = os.path.join(rocm_bin, "clang.exe").replace("\\", "/")
-        cxx_compiler = os.path.join(rocm_bin, "clang++.exe").replace("\\", "/")
-        
-        # Use modern GGML flags for 0.3.x builds with Ninja generator
-        env["CMAKE_GENERATOR"] = "Ninja"
-        env["HIP_PATH"] = rocm_root
-        env["CMAKE_ARGS"] = (
-            f"-DGGML_HIPBLAS=ON -DGGML_HIP=ON "
-            f"-DCMAKE_C_COMPILER=\"{c_compiler}\" "
-            f"-DCMAKE_CXX_COMPILER=\"{cxx_compiler}\" "
-            f"-DAMDGPU_TARGETS={gfx_arch}"
-        )
-    elif choice in ["2", "3"]:
-        colored_print("   --> Compiling llama-cpp-python with CUDA support...", 14)
-        env["CMAKE_ARGS"] = "-DLLAMA_CUDA=ON"
-    
-    try:
-        # Install llama-cpp-python. We use --verbose to show compilation progress.
-        # We don't use -c constraints here because llama-cpp-python compilation can be sensitive.
-        subprocess.check_call([
-            pip_exe, "-m", "pip", "install", "llama-cpp-python", 
-            "--no-cache-dir", "--force-reinstall", "--upgrade"
-        ], env=env)
-        colored_print("   --> Native LLM support installed successfully!", 10)
-    except Exception as e:
-        colored_print(f"\n[WARNING] Native LLM compilation failed: {e}", 9)
-        colored_print("   AutoSubs AI will fall back to CPU-only NLLB for translations.", 14)
-        subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
+        try:
+            # Install llama-cpp-python. We use --verbose to show compilation progress.
+            # We don't use -c constraints here because llama-cpp-python compilation can be sensitive.
+            subprocess.check_call([
+                pip_exe, "-m", "pip", "install", "llama-cpp-python", 
+                "--no-cache-dir", "--force-reinstall", "--upgrade"
+            ], env=env)
+            colored_print("   --> Native LLM support installed successfully!", 10)
+        except Exception as e:
+            colored_print(f"\n[WARNING] Native LLM compilation failed: {e}", 9)
+            colored_print("   AutoSubs AI will fall back to CPU-only NLLB for translations.", 14)
+            subprocess.check_call([pip_exe, "-m", "pip", "install", "llama-cpp-python", "--no-cache-dir"])
 
     # ── Step 7: done ─────────────────────────────────────────────────────────
     print("\n=========================================")
