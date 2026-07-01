@@ -9,11 +9,6 @@ import logging
 for logger_name in ["httpx", "huggingface_hub", "transformers", "filelock"]:
     logging.getLogger(logger_name).setLevel(logging.WARNING)
 
-# Enforce offline-first by default unless overriden by .env
-if os.getenv("HF_HUB_OFFLINE") is None:
-    os.environ["HF_HUB_OFFLINE"] = "1"
-if os.getenv("TRANSFORMERS_OFFLINE") is None:
-    os.environ["TRANSFORMERS_OFFLINE"] = "1"
 # --------------------------------------
 
 from api.routes import router as api_router

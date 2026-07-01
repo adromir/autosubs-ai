@@ -45,7 +45,7 @@ source venv/bin/activate
 export PYTHONUNBUFFERED=1
 export HF_HUB_DISABLE_SYMLINKS_WARNING=1
 export HF_HUB_DISABLE_TELEMETRY=1
-export HF_HUB_ENABLE_HF_TRANSFER=1
+export HF_XET_HIGH_PERFORMANCE=1
 export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 
 # Load overrides from .env if present

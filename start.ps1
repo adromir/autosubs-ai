@@ -47,7 +47,7 @@ if (-not (Test-Path "frontend\dist")) {
     $env:PYTHONUNBUFFERED = "1"
     $env:HF_HUB_DISABLE_SYMLINKS_WARNING = "1"
     $env:HF_HUB_DISABLE_TELEMETRY = "1"
-    $env:HF_HUB_ENABLE_HF_TRANSFER = "1"
+    $env:HF_XET_HIGH_PERFORMANCE = "1"
     $env:TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD = "1"
 
     # Load from .env if exists
