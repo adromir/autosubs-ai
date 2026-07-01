@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Play, ArrowUp, ArrowDown, X, Save, Plus, Trash2, Edit3, Check, Globe, ChevronRight, ChevronDown, HelpCircle, Info, Film, Languages } from 'lucide-react';
+import { Settings, Play, ArrowUp, ArrowDown, X, Save, Plus, Trash2, Edit3, Check, Globe, ChevronRight, ChevronDown, HelpCircle, Info, Film, Languages, Star } from 'lucide-react';
 import CustomSelect from './CustomSelect';
 
 const Tooltip = ({ text, children }) => {
@@ -139,6 +139,7 @@ export function ConfigPanel({ onProcess, disabled }) {
   const [allowTitleMatch, setAllowTitleMatch] = useState(false);
   const [useNfo, setUseNfo] = useState(false);
   const [autoSync, setAutoSync] = useState(false);
+  const [autoJanitor, setAutoJanitor] = useState(true);
   const [fetchAllAvailable, setFetchAllAvailable] = useState(false);
   const [isProfileDefault, setIsProfileDefault] = useState(false);
   const [localLlamaModels, setLocalLlamaModels] = useState([]);
@@ -190,6 +191,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       allowTitleMatch !== (p.allow_title_match ?? false),
       useNfo !== (p.use_nfo ?? false),
       autoSync !== (p.auto_sync ?? false),
+      autoJanitor !== (p.auto_janitor ?? true),
       fallbackToTargets !== (p.fallback_to_targets ?? false),
       fetchAllAvailable !== (p.fetch_all_available ?? false),
       llmModelPath !== (p.llm_model_path || '')
@@ -199,7 +201,7 @@ export function ConfigPanel({ onProcess, disabled }) {
 
   const fetchProfiles = async (selectName = null) => {
     try {
-      const res = await fetch('/api/profiles/');
+      const res = await fetch('/api/profiles/', { cache: 'no-store' });
       const data = await res.json();
       setProfiles(data.profiles || []);
       
@@ -238,6 +240,7 @@ export function ConfigPanel({ onProcess, disabled }) {
     setAllowTitleMatch(p.allow_title_match);
     setUseNfo(p.use_nfo || false);
     setAutoSync(p.auto_sync || false);
+    setAutoJanitor(p.auto_janitor ?? true);
     setFetchAllAvailable(p.fetch_all_available || false);
     setIsProfileDefault(p.is_default || false);
     
@@ -320,15 +323,28 @@ export function ConfigPanel({ onProcess, disabled }) {
     }
   };
 
+  const handleSetDefault = async () => {
+    try {
+      await fetch('/api/profiles/set-default', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: activeProfileName })
+      });
+      fetchProfiles(activeProfileName);
+    } catch (e) {
+      console.error("Set default failed", e);
+    }
+  };
+
   useEffect(() => {
     async function loadConfig() {
       try {
         const [modRes, lanRes, engRes, hwRes, setRes] = await Promise.all([
-          fetch('/api/config/models'),
-          fetch('/api/config/languages'),
-          fetch('/api/config/engines'),
-          fetch('/api/config/hardware'),
-          fetch('/api/config/settings')
+          fetch('/api/config/models', { cache: 'no-store' }),
+          fetch('/api/config/languages', { cache: 'no-store' }),
+          fetch('/api/config/engines', { cache: 'no-store' }),
+          fetch('/api/config/hardware', { cache: 'no-store' }),
+          fetch('/api/config/settings', { cache: 'no-store' })
         ]);
         
         const modData = await modRes.json();
@@ -462,6 +478,13 @@ export function ConfigPanel({ onProcess, disabled }) {
                     className="btn-ghost" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem' }}
                   >
                     <Edit3 size={14} /> Rename
+                  </button>
+                  <button 
+                    onClick={() => { handleSetDefault(); setIsDropdownOpen(false); }}
+                    className="btn-ghost" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem', color: 'var(--warning)' }}
+                    disabled={profiles.find(p => p.name === activeProfileName)?.is_default}
+                  >
+                    <Star size={14} /> Set Default
                   </button>
                   <button 
                     onClick={() => { handleDeleteProfile(); setIsDropdownOpen(false); }}
@@ -621,6 +644,18 @@ Hardcode: Permanently burns the subtitles into the video (requires re-encoding).
             />
             <label htmlFor="embyNaming" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
               Emby Compatible Naming (.eng.srt)
+            </label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <input 
+              type="checkbox" 
+              checked={autoJanitor} 
+              onChange={e => setAutoJanitor(e.target.checked)} 
+              id="autoJanitor"
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+            />
+            <label htmlFor="autoJanitor" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
+              Auto Janitor (Clean .tmp.wav files after queue finishes)
             </label>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>

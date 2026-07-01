@@ -27,7 +27,7 @@ def _get_temp_audio_path(video_path: str) -> str:
 
 
 def _cleanup_temp_audio(video_path: str):
-    """Safely removes the temporary audio file if it exists."""
+    """Safely removes the temporary audio file if it exists. Should only be called at the very end of the job."""
     path = _get_temp_audio_path(video_path)
     if os.path.exists(path):
         try:
@@ -112,6 +112,15 @@ async def process_phase_1(job):
         await job_manager.update_job(job.id, status="probing", progress=5.0, message="Probing video file")
         media_info = await asyncio.to_thread(probe_video, job.filepath, job.ignore_forced_subs)
         
+        # Unconditional Audio Extraction (if needed for Syncing or Transcription)
+        if getattr(job, "auto_sync", False) or getattr(job, "enable_transcription", True):
+            temp_audio = _get_temp_audio_path(job.filepath)
+            if not os.path.exists(temp_audio):
+                a_idx, _ = _select_best_audio(media_info, job.base_language, job.target_languages, getattr(job, "fallback_to_targets", False))
+                if a_idx is not None:
+                    await job_manager.update_job(job.id, status="extracting_audio", progress=10.0, message="Extracting main audio track")
+                    await asyncio.to_thread(extract_audio, job.filepath, temp_audio, a_idx)
+        
         # 1. First, check which target languages we ALREADY have on disk (natively extracted/existing)
         target_langs_needed = set(job.target_languages)
         for tgt in list(target_langs_needed):
@@ -163,28 +172,53 @@ async def process_phase_1(job):
                                for p in providers_all if p.get("id")}
             
             # Request only the languages the user configured: base + all targets (deduplicated)
-            all_langs_to_search = list(set([job.base_language] + job.target_languages))
+            all_langs_to_search = []
+            for lang in set([job.base_language] + job.target_languages):
+                if not os.path.exists(_get_srt_path(job.filepath, lang, getattr(job, "emby_naming", False))):
+                    all_langs_to_search.append(lang)
             
-            fetch_results = await asyncio.to_thread(
-                fetch_all_subtitles,
-                job.filepath,
-                all_langs_to_search,
-                providers_to_use,
-                provider_configs,
-                allow_title_match=getattr(job, "allow_title_match", False),
-                use_nfo=getattr(job, "use_nfo", False),
-                deep_cleanup=getattr(job, "deep_cleanup", True),
-                emby_naming=getattr(job, "emby_naming", False)
-            )
+            fetch_results = []
+            if all_langs_to_search:
+                fetch_results = await asyncio.to_thread(
+                    fetch_all_subtitles,
+                    job.filepath,
+                    all_langs_to_search,
+                    providers_to_use,
+                    provider_configs,
+                    allow_title_match=getattr(job, "allow_title_match", False),
+                    use_nfo=getattr(job, "use_nfo", False),
+                    deep_cleanup=getattr(job, "deep_cleanup", True),
+                    emby_naming=getattr(job, "emby_naming", False)
+                )
             
             if fetch_results:
+                synced_reference_srt = None
                 for res in fetch_results:
                     print(f" -> Found and processed internet subtitle: {res['lang']} via {res['provider']}")
                     if res['lang'] in target_langs_needed:
                         target_langs_needed.remove(res['lang'])
                     # Auto-sync bulk results if requested
                     if getattr(job, "auto_sync", False):
-                        await asyncio.to_thread(sync_subtitle, job.filepath, res["path"])
+                        temp_audio = _get_temp_audio_path(job.filepath)
+                        if os.path.exists(temp_audio):
+                            print(f"[Sync] Syncing bulk-fetched subtitle ({res['lang']}) against pre-extracted audio")
+                            await asyncio.to_thread(sync_subtitle, temp_audio, res["path"], reference_stream_index=None)
+                        else:
+                            # Sync the first subtitle against the MKV
+                            ref_idx = None
+                            if media_info.subtitle_tracks:
+                                for t in media_info.subtitle_tracks:
+                                    if "forced" not in (t.title or "").lower():
+                                        ref_idx = t.index
+                                        break
+                                if ref_idx is None:
+                                    ref_idx = media_info.subtitle_tracks[0].index
+                            
+                            if ref_idx is None and media_info.audio_tracks:
+                                ref_idx = next((a.index for a in media_info.audio_tracks if a.language == res['lang']), 
+                                               media_info.audio_tracks[0].index)
+                                                   
+                            await asyncio.to_thread(sync_subtitle, job.filepath, res["path"], reference_stream_index=ref_idx)
 
         # INDIVIDUAL DISCOVERY LOOP: Find the best local or specific internet source
         for lang in discovery_queue:
@@ -243,9 +277,25 @@ async def process_phase_1(job):
                     
                     if not fetch_result["is_hash_match"] and getattr(job, "auto_sync", False):
                         await job_manager.update_job(job.id, status="syncing", progress=23.0, message=f"Syncing {lang} subtitle")
-                        audio_idx = next((a.index for a in media_info.audio_tracks if a.language == lang), 
-                                         media_info.audio_tracks[0].index if media_info.audio_tracks else None)
-                        await asyncio.to_thread(sync_subtitle, job.filepath, fetch_result["path"], audio_stream_index=audio_idx)
+                        temp_audio = _get_temp_audio_path(job.filepath)
+                        if os.path.exists(temp_audio):
+                            await asyncio.to_thread(sync_subtitle, temp_audio, fetch_result["path"], reference_stream_index=None)
+                        else:
+                            ref_idx = None
+                            if media_info.subtitle_tracks:
+                                # Try to find a non-forced subtitle track for lightning-fast subtitle-to-subtitle sync
+                                for t in media_info.subtitle_tracks:
+                                    if "forced" not in (t.title or "").lower():
+                                        ref_idx = t.index
+                                        break
+                                if ref_idx is None:
+                                    ref_idx = media_info.subtitle_tracks[0].index
+                            
+                            if ref_idx is None and media_info.audio_tracks:
+                                ref_idx = next((a.index for a in media_info.audio_tracks if a.language == lang), 
+                                               media_info.audio_tracks[0].index)
+                            
+                            await asyncio.to_thread(sync_subtitle, job.filepath, fetch_result["path"], reference_stream_index=ref_idx)
                     break
 
             # If we've satisfied ALL target languages now via internet fetch, we can mark found_source
@@ -260,25 +310,10 @@ async def process_phase_1(job):
             if not getattr(job, "enable_transcription", True):
                 print(f" -> No subtitles found and AI transcription is disabled.")
                 await job_manager.update_job(job.id, status="failed", progress=0.0, message="No subtitle retrieved and transcription is disabled.")
-                _cleanup_temp_audio(job.filepath)
                 return
 
             print(f" -> No suitable native subs found. Preparing for ML Transcription...")
             
-            # Smart Audio Selection for Phase 2
-            audio_idx, detected_lang = _select_best_audio(
-                media_info, 
-                job.base_language, 
-                job.target_languages, 
-                getattr(job, "fallback_to_targets", False)
-            )
-            
-            if audio_idx is None: raise RuntimeError("No audio tracks found for transcription.")
-            
-            # If we found an audio track in Phase 1, we save it for Phase 2
-            await job_manager.update_job(job.id, transcription_lang_hint=detected_lang)
-            
-            temp_audio = _get_temp_audio_path(job.filepath)
             if not os.path.exists(temp_audio):
                 if is_cancelled(): return
                 await job_manager.update_job(job.id, status="extracting_audio", progress=25.0, message="Extracting audio for AI transcription")
@@ -288,10 +323,8 @@ async def process_phase_1(job):
 
     except Exception as e:
         if is_cancelled(): 
-            _cleanup_temp_audio(job.filepath)
             return
         await job_manager.update_job(job.id, status="failed", progress=0.0, message=str(e))
-        _cleanup_temp_audio(job.filepath)
         print(f"Job {job.id} Phase 1 failed: {e}")
 
 
@@ -376,16 +409,11 @@ async def process_phase_2(job):
 
         await asyncio.to_thread(sanitize_and_refine, _get_srt_path(job.filepath, job.actual_source_lang, getattr(job, "emby_naming", False)), deep_cleanup=job.deep_cleanup)
         await job_manager.update_job(job.id, status="awaiting_translation", progress=60.0, message="Transcription complete", transcribed=True)
-        
-        # Atomic Cleanup: Remove temp audio after transcription is DONE
-        _cleanup_temp_audio(job.filepath)
 
     except Exception as e:
         if is_cancelled(): 
-            _cleanup_temp_audio(job.filepath)
             return
         await job_manager.update_job(job.id, status="failed", progress=0.0, message=str(e))
-        _cleanup_temp_audio(job.filepath)
 
 
 async def process_phase_3(job):
@@ -446,12 +474,22 @@ async def process_phase_3(job):
             # Post-processing refined output
             await asyncio.to_thread(sanitize_and_refine, output_srt, deep_cleanup=job.deep_cleanup)
             
+            if getattr(job, "auto_sync", False):
+                await job_manager.update_job(job.id, status="syncing", message=f"Syncing translated subtitle ({tgt_lang})")
+                temp_audio = _get_temp_audio_path(job.filepath)
+                if os.path.exists(temp_audio):
+                    await asyncio.to_thread(sync_subtitle, temp_audio, output_srt, reference_stream_index=None)
+                else:
+                    await asyncio.to_thread(sync_subtitle, job.filepath, output_srt, reference_stream_index=None)
+
         final_status = "awaiting_hardcode" if job.hardcode_subs else "completed"
         await job_manager.update_job(job.id, status=final_status, progress=100.0 if not job.hardcode_subs else 90.0)
 
     except Exception as e:
-        if is_cancelled(): return
-        await job_manager.update_job(job.id, status="failed", progress=0.0, message=str(e))
+        if job.status != "cancelled":
+            await job_manager.update_job(job.id, status="failed", progress=0.0, message=str(e))
+    finally:
+        _cleanup_temp_audio(job.filepath)
 
 
 async def process_phase_4(job):

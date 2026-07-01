@@ -51,6 +51,15 @@ async def download_model(req: DownloadRequest):
     
     return {"status": "started", "model_id": req.model_id}
 
+@router.post("/download/cancel")
+async def cancel_download(req: DownloadRequest):
+    """Cancel an ongoing model download."""
+    if not mgr.llm_manager:
+        raise HTTPException(status_code=500, detail="LLM Manager not initialized")
+    
+    success = mgr.llm_manager.cancel_download(req.model_id)
+    return {"status": "cancelled", "model_id": req.model_id}
+
 @router.get("/download/status/{model_id}")
 async def get_status(model_id: str):
     """Check the download progress of a specific model."""

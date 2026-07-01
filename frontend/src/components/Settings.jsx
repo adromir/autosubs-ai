@@ -166,6 +166,11 @@ export function Settings() {
   const [scanningRepo, setScanningRepo] = useState(false);
   const [selectedFile, setSelectedFile] = useState('');
 
+  const [cleanupPath, setCleanupPath] = useState('');
+  const [isCleanupPickerOpen, setIsCleanupPickerOpen] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupStatus, setCleanupStatus] = useState('');
+
   // ─── Data loading ─────────────────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/settings/hf-token')
@@ -298,6 +303,22 @@ export function Settings() {
     } catch (err) { console.error('Failed to unmount:', err); }
   };
 
+  const handleCleanup = async () => {
+    if (!cleanupPath) return;
+    setCleaning(true); setCleanupStatus('Cleaning...');
+    try {
+      const resp = await fetch('/api/cleanup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: cleanupPath })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || 'Failed to clean up files');
+      setCleanupStatus(`Cleaned up ${data.deleted_count} .tmp.wav files!`);
+      setTimeout(() => setCleanupStatus(''), 5000);
+    } catch (err) { setCleanupStatus(`Error: ${err.message}`); }
+    finally { setCleaning(false); }
+  };
+
   const handleSaveNotifications = async () => {
     setSavingNotifs(true); setNotifStatus('');
     try {
@@ -325,6 +346,17 @@ export function Settings() {
       });
       if (resp.ok) { setDownloadingIds(prev => new Set([...prev, modelId])); fetchLLMModels(); }
     } catch (err) { console.error('Failed to start download:', err); }
+  };
+
+  const handleCancelDownload = async (modelId) => {
+    try {
+      await fetch('/api/llm/download/cancel', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_id: modelId })
+      });
+      setDownloadingIds(prev => { const n = new Set(prev); n.delete(modelId); return n; });
+      fetchLLMModels();
+    } catch (err) { console.error('Failed to cancel download:', err); }
   };
 
   const handleScanRepo = async () => {
@@ -535,7 +567,58 @@ export function Settings() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            4. STORAGE & MODELS
+            4. SYSTEM MAINTENANCE
+        ════════════════════════════════════════════════════════════════ */}
+        <section style={S.section}>
+          <div style={S.sectionHeader}>
+            <Trash2 size={20} color="var(--primary)" />
+            <h3 style={S.sectionTitle}>System Maintenance</h3>
+          </div>
+          <p style={S.sectionDesc}>
+            Manually trigger cleanup processes to remove temporary files left behind during transcription.
+          </p>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={S.label}>Manual Janitor Cleanup (Target Directory)</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="text-input"
+                placeholder="E:\Movies\..."
+                value={cleanupPath}
+                onChange={(e) => setCleanupPath(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                onClick={() => setIsCleanupPickerOpen(true)}
+                style={{
+                  padding: '0 1rem',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Search size={15} /> Browse
+              </button>
+              <button 
+                className="btn-primary" 
+                onClick={handleCleanup} 
+                disabled={cleaning || !cleanupPath}
+                style={{ padding: '0 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Trash2 size={15} /> {cleaning ? 'Cleaning...' : 'Clean'}
+              </button>
+            </div>
+          </div>
+          
+          {cleanupStatus && (
+            <div style={{ marginTop: '0.6rem', fontSize: '0.82rem', color: cleanupStatus.startsWith('Error') ? 'var(--danger)' : 'var(--success)' }}>
+              {cleanupStatus}
+            </div>
+          )}
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            5. STORAGE & MODELS
         ════════════════════════════════════════════════════════════════ */}
         <section style={S.section}>
           <div style={S.sectionHeader}>
@@ -615,27 +698,35 @@ export function Settings() {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => !model.is_downloaded && handleDownloadModel(model.id)}
-                    disabled={model.is_downloaded || downloadingIds.has(model.id)}
-                    style={{
-                      flexShrink: 0,
-                      padding: '0.4rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: model.is_downloaded ? 'default' : 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '0.35rem',
-                      background: model.is_downloaded ? 'rgba(74,222,128,0.12)' : 'var(--primary)',
-                      color: model.is_downloaded ? 'var(--success)' : '#fff',
-                      opacity: downloadingIds.has(model.id) ? 0.7 : 1,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {model.is_downloaded ? <><Check size={13} /> Downloaded</> :
-                     downloadingIds.has(model.id) ? 'Downloading...' : 'Download'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                    {downloadingIds.has(model.id) && (
+                      <button
+                        onClick={() => handleCancelDownload(model.id)}
+                        style={{
+                          padding: '0.4rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                          background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', transition: 'all 0.2s',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                        title="Cancel Download"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => !model.is_downloaded && handleDownloadModel(model.id)}
+                      disabled={model.is_downloaded || downloadingIds.has(model.id)}
+                      style={{
+                        padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, border: 'none',
+                        cursor: model.is_downloaded ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
+                        background: model.is_downloaded ? 'rgba(74,222,128,0.12)' : 'var(--primary)',
+                        color: model.is_downloaded ? 'var(--success)' : '#fff',
+                        opacity: downloadingIds.has(model.id) ? 0.7 : 1, transition: 'all 0.2s',
+                      }}
+                    >
+                      {model.is_downloaded ? <><Check size={13} /> Downloaded</> :
+                       downloadingIds.has(model.id) ? 'Downloading...' : 'Download'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -943,6 +1034,10 @@ export function Settings() {
       {/* ── Modals ───────────────────────────────────────────────────────── */}
       <Modal isOpen={isPickerOpen} onClose={() => setIsPickerOpen(false)} title="Select Model Storage Directory">
         <FolderBrowser onSelect={setModelCacheDir} selectedPath={modelCacheDir} />
+      </Modal>
+
+      <Modal isOpen={isCleanupPickerOpen} onClose={() => setIsCleanupPickerOpen(false)} title="Select Directory for Janitor Cleanup">
+        <FolderBrowser onSelect={setCleanupPath} selectedPath={cleanupPath} />
       </Modal>
 
       {showWipeConfirm && (

@@ -186,6 +186,7 @@ class JobCreateRequest(BaseModel):
     enable_extraction: bool = True
     enable_transcription: bool = True
     emby_naming: bool = False
+    auto_janitor: bool = True
 
 def is_video_file(filename: str) -> bool:
     ext = Path(filename).suffix.lower()
@@ -231,7 +232,8 @@ def create_jobs(request: JobCreateRequest):
             llm_model_path=request.llm_model_path,
             enable_extraction=request.enable_extraction,
             enable_transcription=request.enable_transcription,
-            emby_naming=request.emby_naming
+            emby_naming=request.emby_naming,
+            auto_janitor=request.auto_janitor
         )
         created_jobs.append(job)
     elif target_dir.is_dir():
@@ -272,7 +274,8 @@ def create_jobs(request: JobCreateRequest):
                 llm_model_path=request.llm_model_path,
                 enable_extraction=request.enable_extraction,
                 enable_transcription=request.enable_transcription,
-                emby_naming=request.emby_naming
+                emby_naming=request.emby_naming,
+                auto_janitor=request.auto_janitor
             )
             created_jobs.append(job)
     else:
@@ -441,6 +444,27 @@ def update_settings(settings: SettingsUpdate):
     with open(_CONFIG_PATH, "w") as f:
         json.dump(settings.model_dump(), f)
     return {"status": "success"}
+
+class CleanupRequest(BaseModel):
+    path: str
+
+@router.post("/cleanup")
+def cleanup_temp_files(req: CleanupRequest):
+    target_dir = Path(req.path)
+    if not target_dir.exists() or not target_dir.is_dir():
+        raise HTTPException(status_code=400, detail="Invalid directory path")
+        
+    deleted_count = 0
+    for root, dirs, files in os.walk(target_dir):
+        for file in files:
+            if file.endswith(".tmp.wav"):
+                try:
+                    os.remove(os.path.join(root, file))
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"[Janitor] Failed to delete {file}: {e}")
+                    
+    return {"status": "success", "deleted_count": deleted_count}
 
 @router.post("/shutdown")
 def shutdown_server():

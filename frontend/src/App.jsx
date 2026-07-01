@@ -82,7 +82,7 @@ function App() {
           fetch_internet_subs: config.fetch_internet_subs,
           enable_extraction: config.enable_extraction,
           enable_transcription: config.enable_transcription,
-          emby_naming: config.embyNaming,
+          emby_naming: config.emby_naming,
           allow_title_match: config.allow_title_match,
           use_nfo: config.use_nfo,
           auto_sync: config.auto_sync,
@@ -91,7 +91,8 @@ function App() {
           vad_model: config.vad_model,
           fetch_all_available: config.fetch_all_available,
           fallback_to_targets: config.fallback_to_targets,
-          deep_cleanup: config.deep_cleanup
+          deep_cleanup: config.deep_cleanup,
+          auto_janitor: config.auto_janitor
         })
       });
       if (!resp.ok) {

@@ -36,6 +36,7 @@ class ProfileData(BaseModel):
     enable_extraction: bool = True
     enable_transcription: bool = True
     emby_naming: bool = False
+    auto_janitor: bool = True
 
 class RenameRequest(BaseModel):
     old_name: str

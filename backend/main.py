@@ -17,6 +17,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Proactive HF Authentication on startup
 hf_token = os.getenv("HF_TOKEN")
+
+# Fix user environment variable conflicts
+os.environ.pop("HF_HUB_OFFLINE", None)
+os.environ.pop("HF_HUB_ENABLE_HF_TRANSFER", None)
+
 if hf_token:
     try:
         # Re-set environment variables explicitly to ensure priority over stale system vars

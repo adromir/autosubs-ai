@@ -247,21 +247,83 @@ def clear_transcription_cache():
 
 def extract_audio(video_path: str, output_audio_path: str, track_index: Optional[int] = None):
     try:
-        stream = ffmpeg.input(video_path)
+        duration = 0.0
+        try:
+            probe = ffmpeg.probe(video_path)
+            duration = float(probe['format']['duration'])
+        except Exception:
+            pass
+
+        print(f"Extracting audio track from: {os.path.basename(video_path)}")
+        
+        stream = ffmpeg.input(video_path, hwaccel='auto')
         if track_index is not None:
             stream = stream[str(track_index)]
         else:
             stream = stream.audio
             
         stream = ffmpeg.output(stream, output_audio_path, acodec='pcm_s16le', ac=1, ar='16k')
-        ffmpeg.run(stream, overwrite_output=True, quiet=True)
+        args = ffmpeg.compile(stream, overwrite_output=True)
+        
+        import subprocess
+        process = subprocess.Popen(
+            args, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            universal_newlines=True, 
+            bufsize=1,
+            encoding='utf-8', 
+            errors='replace'
+        )
+        
+        time_pattern = re.compile(r"time=(\d+):(\d+):(\d+\.\d+)")
+        
+        if duration > 0:
+            try:
+                from tqdm import tqdm
+                pbar = tqdm(total=100, desc="Extracting Audio", unit="%", bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}% [{elapsed}<{remaining}]")
+                last_progress = 0
+                for line in process.stderr:
+                    match = time_pattern.search(line)
+                    if match:
+                        h, m, s = match.groups()
+                        current_time = int(h) * 3600 + int(m) * 60 + float(s)
+                        progress = min(100, int((current_time / duration) * 100))
+                        if progress > last_progress:
+                            pbar.update(progress - last_progress)
+                            last_progress = progress
+                pbar.update(100 - last_progress)
+                pbar.close()
+                process.wait()
+            except ImportError:
+                last_progress = -1
+                for line in process.stderr:
+                    match = time_pattern.search(line)
+                    if match:
+                        h, m, s = match.groups()
+                        current_time = int(h) * 3600 + int(m) * 60 + float(s)
+                        progress = min(100, int((current_time / duration) * 100))
+                        if progress > last_progress and progress % 10 == 0:
+                            print(f"Extracting Audio... {progress}%", end='\r', flush=True)
+                            last_progress = progress
+                process.wait()
+                print("Extracting Audio... 100%")
+        else:
+            print("Extracting Audio (duration unknown)...", end="", flush=True)
+            for _ in process.stderr:
+                pass
+            process.wait()
+            print(" Done!")
+            
+        if process.returncode != 0:
+            raise RuntimeError(f"FFmpeg process returned non-zero exit status {process.returncode}")
         
         # Verification: Ensure file was actually created and has content
         if not os.path.exists(output_audio_path) or os.path.getsize(output_audio_path) == 0:
             raise RuntimeError(f"FFmpeg produced an empty or missing audio file: {output_audio_path}")
             
-    except ffmpeg.Error as e:
-        print(f"Failed to extract audio: {e.stderr.decode('utf8') if e.stderr else str(e)}")
+    except Exception as e:
+        print(f"\nFailed to extract audio: {str(e)}")
         raise RuntimeError(f"Audio extraction failed for {video_path}")
 
 def extract_audio_array(video_path: str, track_index: Optional[int] = None) -> np.ndarray:
@@ -319,23 +381,38 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
     if engine == "faster-whisper":
         try:
             from faster_whisper import WhisperModel  # lazy import — avoids HIP DLL hang at server start
+            try:
+                from faster_whisper import BatchedInferencePipeline
+                has_batched = True
+            except ImportError:
+                has_batched = False
+                
             if _transcription_cache["engine"] != "faster-whisper" or _transcription_cache["model_size"] != model_size or _transcription_cache["device"] != device:
                 print(f"Loading faster-whisper {model_size} on {device}...")
                 clear_transcription_cache()
                 try:
                     # Respect custom model cache directory
-                    model = WhisperModel(model_size, device=device, compute_type=compute_type, download_root=_model_cache_dir)
+                    base_model = WhisperModel(model_size, device=device, compute_type=compute_type, download_root=_model_cache_dir)
+                    if has_batched:
+                        model = BatchedInferencePipeline(model=base_model)
+                    else:
+                        model = base_model
                 except RuntimeError as e:
                     if "CUDA failed with error CUDA driver version is insufficient" in str(e) or "HIP error" in str(e):
                         print(f"\n[Hardware Alert] ROCm/CUDA initialization failed on {device}. Falling back to CPU for stability.")
                         device = "cpu"
                         compute_type = "int8"
-                        model = WhisperModel(model_size, device="cpu", compute_type="int8", download_root=_model_cache_dir)
+                        base_model = WhisperModel(model_size, device="cpu", compute_type="int8", download_root=_model_cache_dir)
+                        if has_batched:
+                            model = BatchedInferencePipeline(model=base_model)
+                        else:
+                            model = base_model
                     else:
                         raise e
-                _transcription_cache.update({"engine": "faster-whisper", "model_size": model_size, "device": device, "compute_type": compute_type, "model": model})
+                _transcription_cache.update({"engine": "faster-whisper", "model_size": model_size, "device": device, "compute_type": compute_type, "model": model, "has_batched": has_batched})
             else:
                 model = _transcription_cache["model"]
+                has_batched = _transcription_cache.get("has_batched", False)
             
             kwargs = {
                 "language": language,
@@ -349,17 +426,19 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
                     min_silence_duration_ms=int(vad_offset * 1000),
                     speech_pad_ms=400
                 ) if use_vad else None,
-                # Anti-hallucination: disable conditioning on previous output prevents looping/repeating
-                "condition_on_previous_text": False,
-                # Temperature fallback: Whisper retries with higher temp if segment fails quality check
                 "temperature": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-                # Filter segments with abnormally high compression ratio (sign of repetition loops)
-                "compression_ratio_threshold": 2.4,
-                # Filter segments with low average log-probability (sign of hallucination)
-                "log_prob_threshold": -1.0,
-                # No speech threshold: skip silent/noise-only segments
-                "no_speech_threshold": 0.6,
             }
+            
+            if has_batched:
+                kwargs["batch_size"] = 16
+                print("Using BatchedInferencePipeline (batch_size=16) for accelerated transcription.")
+            else:
+                # Add arguments that are unused by BatchedInferencePipeline
+                kwargs["condition_on_previous_text"] = False
+                kwargs["compression_ratio_threshold"] = 2.4
+                kwargs["log_prob_threshold"] = -1.0
+                kwargs["no_speech_threshold"] = 0.6
+
             if custom_prompt and custom_prompt.strip():
                 kwargs["initial_prompt"] = custom_prompt.strip()
             

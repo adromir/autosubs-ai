@@ -407,7 +407,7 @@ def _get_output_path(video_path: str, lang_code: str, emby_naming: bool = False)
         full_lang = f"{lang_code}_{lang_code.upper()}"
         return str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
 
-def sync_subtitle(video_path: str, subtitle_path: str, audio_stream_index: Optional[int] = None, vad_engine: str = "silero") -> bool:
+def sync_subtitle(video_path: str, subtitle_path: str, reference_stream_index: Optional[int] = None, vad_engine: str = "silero") -> bool:
     """
     Syncs a subtitle file to a video file using ffsubsync.
     Overwrites the subtitle_path with the synced version.
@@ -432,6 +432,8 @@ def sync_subtitle(video_path: str, subtitle_path: str, audio_stream_index: Optio
             "--encoding", "utf-8",
             "--vad", ff_vad
         ]
+        if reference_stream_index is not None:
+            cmd.extend(["--reference-stream", f"0:{reference_stream_index}"])
         
         result = subprocess.run(cmd, capture_output=True, text=True)
         

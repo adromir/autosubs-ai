@@ -44,7 +44,7 @@ export function FolderBrowser({ onSelect, selectedPath }) {
     };
     
     fetchShares();
-    loadDirectory('');
+    loadDirectory(selectedPath || '');
   }, []);
 
   useEffect(() => {

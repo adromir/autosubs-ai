@@ -11,78 +11,31 @@ class LLMManager:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.config_path = self.cache_dir.parent / "config.json"
         self.downloads = {}  # Track progress {model_id: progress_float}
+        self.download_processes = {} # Track subprocesses {model_id: Popen}
         self.custom_models = self._load_custom_models()
         self.api = HfApi()
         
-        self.RECOMMENDED_MODELS = self._load_available_models()["llm_models"]
 
     def _load_available_models(self) -> Dict:
-        models_file = self.cache_dir.parent.parent / "data" / "available_models.json"
+        models_file = Path(__file__).parent.parent / "data" / "available_models.json"
         
-        default_data = {
-            "whisper_models": [
-                "tiny", "tiny.en", "base", "base.en", "small", "small.en", 
-                "medium", "medium.en", "large", "large-v2", "large-v3", "large-v3-turbo"
-            ],
-            "llm_models": [
-                {
-                    "id": "llama-3-8b-instruct",
-                    "name": "Meta Llama 3 (8B Instruct)",
-                    "repo": "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF",
-                    "file": "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf",
-                    "size": "4.9 GB",
-                    "description": "State-of-the-art general purpose model. Excellent for translation."
-                },
-                {
-                    "id": "phi-3-mini-4k",
-                    "name": "Phi-3 Mini (3.8B)",
-                    "repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
-                    "file": "Phi-3-mini-4k-instruct-q4.gguf",
-                    "size": "2.4 GB",
-                    "description": "Fast and efficient. Ideal for lower VRAM cards."
-                },
-                {
-                    "id": "gemma-4-9b",
-                    "name": "Google Gemma 4 (9B)",
-                    "repo": "google/gemma-4-9b-it-GGUF",
-                    "file": "gemma-4-9b-it-Q4_K_M.gguf",
-                    "size": "5.4 GB",
-                    "description": "Latest Google model. Very high translation quality."
-                },
-                {
-                    "id": "qwen-3.6-9b",
-                    "name": "Alibaba Qwen 3.6 (9B)",
-                    "repo": "bartowski/Qwen_Qwen3.6-9B-GGUF",
-                    "file": "Qwen_Qwen3.6-9B-Q4_K_M.gguf",
-                    "size": "5.6 GB",
-                    "description": "Superior translation for Qwen series, high-performance 9B model."
-                }
-            ]
-        }
-
-        if not models_file.exists():
-            models_file.parent.mkdir(parents=True, exist_ok=True)
+        if models_file.exists():
             try:
-                with open(models_file, "w", encoding="utf-8") as f:
-                    json.dump(default_data, f, indent=4)
+                with open(models_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
             except Exception as e:
-                print(f"Error creating default models config: {e}")
-            return default_data
-            
-        try:
-            with open(models_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Error loading models config: {e}")
-            return default_data
+                print(f"[LLM Manager] Error reading {models_file}: {e}")
+                return {"whisper_models": [], "llm_models": []}
+        else:
+            print(f"[LLM Manager] Warning: {models_file} not found.")
+            return {"whisper_models": [], "llm_models": []}
 
     def _load_custom_models(self) -> List[Dict]:
         if not self.config_path.exists():
             return []
         try:
             with open(self.config_path, "r") as f:
-                config = json.load(f)
-                return config.get("custom_llm_models", [])
+                return json.load(f).get("custom_llm_models", [])
         except:
             return []
 
@@ -139,7 +92,7 @@ class LLMManager:
         local_files = self.get_local_models()
         results = []
         # Merge Curated + Custom
-        all_models = self.RECOMMENDED_MODELS + self.custom_models
+        all_models = self._load_available_models().get("llm_models", []) + self.custom_models
         for model in all_models:
             m = model.copy()
             m["is_downloaded"] = m["file"] in local_files
@@ -148,8 +101,8 @@ class LLMManager:
         return results
 
     def start_download(self, model_id: str):
-        """Start a background thread to download a model from HuggingFace."""
-        all_models = self.RECOMMENDED_MODELS + self.custom_models
+        """Start a background process to download a model from HuggingFace."""
+        all_models = self._load_available_models().get("llm_models", []) + self.custom_models
         model = next((m for m in all_models if m["id"] == model_id), None)
         if not model or model["id"] in self.downloads:
             return False
@@ -157,20 +110,57 @@ class LLMManager:
         def download_worker():
             try:
                 self.downloads[model_id] = 0.1
-                # Use HF-Transfer if available (set by env in install_deps)
-                hf_hub_download(
-                    repo_id=model["repo"],
-                    filename=model["file"],
-                    local_dir=str(self.cache_dir),
-                    local_dir_use_symlinks=False
-                )
-                self.downloads[model_id] = 100.0
+                import subprocess
+                import sys
+                
+                env = os.environ.copy()
+                env["HF_XET_HIGH_PERFORMANCE"] = "1"
+                env["HF_HUB_CACHE"] = str(os.path.join(self.cache_dir, ".cache"))
+                
+                # Clean up stale locks to prevent the downloader from deadlocking
+                import glob
+                lock_dir = os.path.join(self.cache_dir, ".cache", "huggingface", "download")
+                if os.path.exists(lock_dir):
+                    for lock_file in glob.glob(os.path.join(lock_dir, "*.lock")):
+                        try: os.remove(lock_file)
+                        except: pass
+                
+                hf_bin = os.path.join(os.path.dirname(sys.executable), "hf")
+                if os.name == "nt": hf_bin += ".exe"
+                
+                cmd = [
+                    hf_bin, "download", model["repo"], model["file"], "--local-dir", str(self.cache_dir)
+                ]
+                
+                process = subprocess.Popen(cmd, env=env)
+                self.download_processes[model_id] = process
+                
+                process.wait()
+                if process.returncode == 0:
+                    self.downloads[model_id] = 100.0
+                else:
+                    print(f"Download failed with exit code {process.returncode}")
+                    self.downloads.pop(model_id, None)
+                    
             except Exception as e:
                 print(f"Download failed for {model_id}: {e}")
                 self.downloads.pop(model_id, None)
+            finally:
+                self.download_processes.pop(model_id, None)
 
         thread = threading.Thread(target=download_worker, daemon=True)
         thread.start()
+        return True
+
+    def cancel_download(self, model_id: str):
+        """Cancel an ongoing download."""
+        if model_id in self.download_processes:
+            try:
+                self.download_processes[model_id].terminate()
+            except:
+                pass
+            self.download_processes.pop(model_id, None)
+        self.downloads.pop(model_id, None)
         return True
 
     def get_download_status(self, model_id: str) -> float:

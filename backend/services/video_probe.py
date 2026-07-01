@@ -90,6 +90,18 @@ def probe_video(filepath: str, ignore_forced_subs: bool = True) -> MediaInfo:
         )
         
         if codec_type == 'audio':
+            disposition = stream.get('disposition', {})
+            tags = stream.get('tags', {})
+            title = tags.get('title', '').lower()
+            
+            if ignore_forced_subs:
+                is_explicitly_forced = disposition.get('forced', 0) == 1
+                has_forced_in_title = 'forced' in title
+                
+                if is_explicitly_forced or has_forced_in_title:
+                    print(f"Skipping native audio track {track.index} ({track.language}) because it is 'Forced'.")
+                    continue
+                    
             audio_tracks.append(track)
         elif codec_type == 'subtitle':
             if track.codec_name.lower() in ['hdmv_pgs_subtitle', 'dvd_subtitle', 'dvdsub', 'pgssub', 'dvbsub']:

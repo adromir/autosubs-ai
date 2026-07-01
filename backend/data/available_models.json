@@ -1,0 +1,148 @@
+{
+    "whisper_models": [
+        "tiny",
+        "tiny.en",
+        "base",
+        "base.en",
+        "small",
+        "small.en",
+        "medium",
+        "medium.en",
+        "large",
+        "large-v2",
+        "large-v3",
+        "large-v3-turbo"
+    ],
+    "llm_models": [
+        {
+            "id": "llama-3-8b-instruct",
+            "name": "Meta Llama 3 (8B Instruct)",
+            "repo": "MaziyarPanahi/Meta-Llama-3-8B-Instruct-GGUF",
+            "file": "Meta-Llama-3-8B-Instruct.Q4_K_M.gguf",
+            "size": "4.9 GB",
+            "description": "State-of-the-art general purpose model. Excellent for translation.",
+            "llama_params": {
+                "n_ctx": 8192,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "llama-3.1-8b-instruct",
+            "name": "Meta Llama 3.1 (8B Instruct)",
+            "repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+            "file": "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
+            "size": "8.5 GB",
+            "description": "Flawless prompt adherence, fast generation, leaves 7.5GB for extensive RAG.",
+            "llama_params": {
+                "n_ctx": 32768,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "gemma-4-12b-it",
+            "name": "Gemma 4 (12B IT)",
+            "repo": "unsloth/gemma-4-12B-it-GGUF",
+            "file": "gemma-4-12b-it-Q8_0.gguf",
+            "size": "12.8 GB",
+            "description": "Native multimodal capabilities, excellent reasoning, fits in 16GB VRAM at 8-bit.",
+            "llama_params": {
+                "n_ctx": 8192,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "gemma-4-e2b-it",
+            "name": "Gemma 4 (E2B IT - BF16)",
+            "repo": "unsloth/gemma-4-E2B-it-GGUF",
+            "file": "gemma-4-E2B-it-BF16.gguf",
+            "size": "9.31 GB",
+            "description": "Ultra-fast, unquantized BF16 precision for precise tasks.",
+            "llama_params": {
+                "n_ctx": 8192,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "gemma-4-e4b-it",
+            "name": "Gemma 4 (E4B IT)",
+            "repo": "unsloth/gemma-4-E4B-it-GGUF",
+            "file": "gemma-4-E4B-it-Q8_0.gguf",
+            "size": "4.5 GB",
+            "description": "Lightning-fast inference, leaves over 10GB of VRAM for massive context windows.",
+            "llama_params": {
+                "n_ctx": 32768,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "gemma-2-9b",
+            "name": "Google Gemma 2 (9B)",
+            "repo": "bartowski/gemma-2-9b-it-GGUF",
+            "file": "gemma-2-9b-it-Q4_K_M.gguf",
+            "size": "5.4 GB",
+            "description": "Latest Google model. Very high translation quality.",
+            "llama_params": {
+                "n_ctx": 8192,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "qwen-2.5-7b",
+            "name": "Alibaba Qwen 2.5 (7B)",
+            "repo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+            "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+            "size": "4.5 GB",
+            "description": "Superior translation for Qwen series, high-performance 7B model.",
+            "llama_params": {
+                "n_ctx": 32768,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "qwen-3-0.6b",
+            "name": "Qwen 3 (0.6B)",
+            "repo": "unsloth/Qwen3-0.6B-GGUF",
+            "file": "Qwen3-0.6B-Q8_0.gguf",
+            "size": "1.2 GB",
+            "description": "Tiny but highly capable router/summarizer model. Very low VRAM usage.",
+            "llama_params": {
+                "n_ctx": 32768,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "mistral-nemo-12b-instruct",
+            "name": "Mistral NeMo (12B Instruct)",
+            "repo": "bartowski/Mistral-Nemo-Instruct-2407-GGUF",
+            "file": "Mistral-Nemo-Instruct-2407-Q6_K.gguf",
+            "size": "10.5 GB",
+            "description": "Excellent multilingual support, reliable coding, great precision.",
+            "llama_params": {
+                "n_ctx": 16384,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        },
+        {
+            "id": "phi-3-mini-4k",
+            "name": "Phi-3 Mini (3.8B)",
+            "repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
+            "file": "Phi-3-mini-4k-instruct-q4.gguf",
+            "size": "2.4 GB",
+            "description": "Fast and efficient. Ideal for lower VRAM cards.",
+            "llama_params": {
+                "n_ctx": 4096,
+                "n_batch": 2048,
+                "flash_attn": true
+            }
+        }
+    ]
+}

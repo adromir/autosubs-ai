@@ -193,25 +193,40 @@ class NativeLlamaService:
         self.n_ctx = 4096
         self.lock = threading.Lock()
 
-    def load_model(self, model_path: str, n_gpu_layers: int = -1):
+    def load_model(self, model_path: str, n_gpu_layers: int = -1, params: dict = None):
+        if params is None:
+            params = {}
+            
         with self.lock:
             if self.model and self.model_path == model_path:
                 return
             
             self.unload_model()
             
+            self.n_ctx = params.get("n_ctx", 4096)
+            n_batch = params.get("n_batch", 2048)
+            flash_attn = params.get("flash_attn", True)
+            
             from llama_cpp import Llama
             # For AMD 9060XT, n_gpu_layers=99 sends everything to the GPU (if compiled with HIP/ROCm)
             # We set verbose=True to see the logs in the terminal for verification.
+            import multiprocessing
+            try:
+                n_threads = max(1, multiprocessing.cpu_count() - 1)
+            except Exception:
+                n_threads = 4
+
+            print(f"[Native Llama] Initializing Llama instance with n_ctx={self.n_ctx}, n_batch={n_batch}, flash_attn={flash_attn}")
             self.model = Llama(
                 model_path=model_path,
                 n_gpu_layers=99,
                 n_ctx=self.n_ctx,
-                n_batch=512,
+                n_batch=n_batch,
+                n_threads=n_threads,
                 logits_all=False,
-                use_mlock=True,
+                use_mlock=False,
                 use_mmap=True,
-                flash_attn=True,
+                flash_attn=flash_attn,
                 verbose=True
             )
             self.model_path = model_path
@@ -230,18 +245,13 @@ class NativeLlamaService:
         if not self.model:
             raise RuntimeError("Llama model not loaded")
 
-        # Prompt engineering for subtitle translation
-        # We ask for JSON for parseability
         numbered_input = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
-        prompt = (
-            f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-            f"You are a professional subtitle translator. "
-            f"Translate each numbered line from {source_lang} to {target_lang}. "
-            f"Respond ONLY with a JSON array of strings in the exact same order, e.g. [\"line1\", \"line2\"]. "
-            f"Do NOT include explanations or markdown.<|eot_id|>"
-            f"Lines to translate:\n{numbered_input}<|eot_id|>"
-            f"<|start_header_id|>assistant<|end_header_id|>\n\n"
-        )
+        
+        system_instruction = f"You are a professional subtitle translator. Translate each numbered line from {source_lang} to {target_lang}. Respond ONLY with a JSON array of strings in the exact same order, e.g. [\"line1\", \"line2\"]. Do NOT include explanations or markdown."
+        
+        messages = [
+            {"role": "user", "content": f"{system_instruction}\n\nLines to translate:\n{numbered_input}"}
+        ]
         
         from llama_cpp import LlamaGrammar
         
@@ -253,19 +263,15 @@ class NativeLlamaService:
         """
         grammar = LlamaGrammar.from_string(json_grammar)
 
-        output = self.model(
-            prompt,
+        output = self.model.create_chat_completion(
+            messages=messages,
             max_tokens=self.n_ctx,
             temperature=0.1,
-            stop=["<|eot_id|>", "<|end_of_text|>"],
-            grammar=grammar,
-            cache_prompt=True,
-            echo=False
+            grammar=grammar
         )
         
-        # Raw response contains the assistent's text starting from the opening bracket.
-        # Since the grammar includes the brackets, we take it as-is.
-        raw_response = output["choices"][0]["text"].strip()
+        # Raw response from the assistant
+        raw_response = output["choices"][0]["message"]["content"].strip()
         
         # Grammar ensures it starts with [ and ends with ] and is valid.
         # But we still do our newline fix just in case the LLM used literal \N instead of escaped \\N
@@ -341,37 +347,86 @@ def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lan
     
     model_path = resolved_path
         
-    try:
-        subs = pysubs2.load(input_srt_path)
-    except Exception as e:
-        print(f"Failed to load SRT for Llama: {e}")
-        raise
-        
-    # Ensure model is loaded
-    llama_service.load_model(model_path)
+    import subprocess
+    import sys
+    import threading
+    import queue
+    import time
+    import json
     
-    events = subs.events
-    total = len(events)
-    processed = 0
-    batch_size = 15
+    # Resolve llama_params from available_models.json
+    llama_params_json = "{}"
+    try:
+        models_file = Path(__file__).parent.parent / "data" / "available_models.json"
+        if models_file.exists():
+            with open(models_file, "r", encoding="utf-8") as f:
+                models_data = json.load(f)
+                filename = os.path.basename(model_path)
+                for llm in models_data.get("llm_models", []):
+                    if llm.get("file") == filename and "llama_params" in llm:
+                        llama_params_json = json.dumps(llm["llama_params"])
+                        print(f"[Native Llama] Found optimal parameters for {filename}: {llama_params_json}")
+                        break
+    except Exception as e:
+        print(f"[Native Llama] Warning: Could not read available_models.json: {e}")
 
-    for batch_start in range(0, total, batch_size):
-        if cancel_check and cancel_check(): raise InterruptedError("Cancelled by user")
-
-        batch_events = events[batch_start:batch_start + batch_size]
-        batch_texts = [e.text.strip() for e in batch_events]
-
-        try:
-            translations = llama_service.translate_batch(batch_texts, target_lang, source_lang)
-            for i, event in enumerate(batch_events):
-                if i < len(translations):
-                    event.text = translations[i].strip()
-        except Exception as e:
-            print(f"[Native Llama] Batch failed: {e}")
-
-        processed += len(batch_events)
-        if progress_callback and total > 0:
-            progress_callback(processed / total)
+    script_path = os.path.join(os.path.dirname(__file__), "_llama_subprocess.py")
+    
+    cmd = [sys.executable, script_path, input_srt_path, output_srt_path, target_lang, source_lang, model_path, llama_params_json]
+    print(f"[Native Llama] Launching isolated subprocess for translation to prevent ROCm conflicts...")
+    
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
+    )
+    
+    q = queue.Queue()
+    def enqueue_output(out, q):
+        for line in iter(out.readline, ''):
+            q.put(line)
+        out.close()
+        
+    t = threading.Thread(target=enqueue_output, args=(process.stdout, q))
+    t.daemon = True
+    t.start()
+    
+    try:
+        while process.poll() is None or not q.empty():
+            if cancel_check and cancel_check():
+                process.terminate()
+                raise InterruptedError("Cancelled by user")
+                
+            try:
+                line = q.get(timeout=0.2)
+            except queue.Empty:
+                continue
+                
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith("PROGRESS:"):
+                try:
+                    parts = line.split("PROGRESS:")[1].split("/")
+                    processed = int(parts[0])
+                    total = int(parts[1])
+                    if progress_callback and total > 0:
+                        progress_callback(processed / total)
+                except Exception:
+                    pass
+            elif line == "DONE":
+                pass
+            else:
+                print(f"[Llama Subprocess] {line}")
+                
+        if process.returncode != 0:
+            raise RuntimeError(f"Llama translation subprocess failed with exit code {process.returncode}")
             
-    subs.save(output_srt_path)
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            
     print(f"Saved Native Llama translated subtitle to {output_srt_path}")

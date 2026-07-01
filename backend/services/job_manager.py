@@ -42,6 +42,7 @@ class JobStatus(BaseModel):
     enable_extraction: bool = True
     enable_transcription: bool = True
     emby_naming: bool = False
+    auto_janitor: bool = True
 
 class JobManager:
     def __init__(self):
@@ -65,7 +66,7 @@ class JobManager:
         for q in self.listeners:
             await q.put(payload)
 
-    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "", enable_extraction: bool = True, enable_transcription: bool = True, emby_naming: bool = False) -> JobStatus:
+    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "", enable_extraction: bool = True, enable_transcription: bool = True, emby_naming: bool = False, auto_janitor: bool = True) -> JobStatus:
         job_id = str(uuid.uuid4())
         now = datetime.now()
         job = JobStatus(
@@ -101,7 +102,8 @@ class JobManager:
             llm_model_path=llm_model_path,
             enable_extraction=enable_extraction,
             enable_transcription=enable_transcription,
-            emby_naming=emby_naming
+            emby_naming=emby_naming,
+            auto_janitor=auto_janitor
         )
         self.jobs[job_id] = job
         return job
@@ -128,6 +130,9 @@ class JobManager:
             job.updated_at = datetime.now()
             await self._notify_listeners(job)
             
+            if status in ["completed", "failed", "cancelled"]:
+                await self._check_janitor_trigger()
+            
     async def cancel_job(self, job_id: str) -> bool:
         job = self.jobs.get(job_id)
         if job and job.status not in ["completed", "failed", "cancelled"]:
@@ -135,7 +140,37 @@ class JobManager:
             job.message = "Cancelled by user"
             job.updated_at = datetime.now()
             await self._notify_listeners(job)
+            await self._check_janitor_trigger()
             return True
         return False
+
+    async def _check_janitor_trigger(self):
+        active_jobs = [j for j in self.jobs.values() if j.status not in ["completed", "failed", "cancelled"]]
+        if not active_jobs:
+            folders_to_clean = set()
+            import os
+            for j in self.jobs.values():
+                if getattr(j, "auto_janitor", False):
+                    folders_to_clean.add(os.path.dirname(j.filepath))
+            
+            if folders_to_clean:
+                print(f"[Janitor] Queue empty. Starting auto-cleanup in {len(folders_to_clean)} folders...")
+                asyncio.create_task(self._run_janitor_bg(folders_to_clean))
+
+    async def _run_janitor_bg(self, folders: set):
+        import os
+        import asyncio
+        def clean():
+            for folder in folders:
+                for root, dirs, files in os.walk(folder):
+                    for f in files:
+                        if f.endswith(".tmp.wav"):
+                            try:
+                                p = os.path.join(root, f)
+                                os.remove(p)
+                                print(f"[Janitor] Cleaned up {p}")
+                            except Exception as e: 
+                                print(f"[Janitor] Failed to clean {f}: {e}")
+        await asyncio.to_thread(clean)
 
 job_manager = JobManager()
