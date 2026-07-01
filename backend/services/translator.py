@@ -246,8 +246,16 @@ class NativeLlamaService:
             raise RuntimeError("Llama model not loaded")
 
         numbered_input = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
-        
-        system_instruction = f"You are a professional subtitle translator. Translate each numbered line from {source_lang} to {target_lang}. Respond ONLY with a JSON array of strings in the exact same order, e.g. [\"line1\", \"line2\"]. Do NOT include explanations or markdown."
+        system_instruction = (
+            f"You are an expert audiovisual translator. Your task is to translate subtitles from {source_lang} to {target_lang}. "
+            f"Follow these rules strictly:\n"
+            f"1. Preserve the original tone, context, and nuance of the dialogue.\n"
+            f"2. Keep translations natural and concise, suitable for subtitle reading speeds.\n"
+            f"3. Maintain any subtitle formatting (like italics) if present, and do not translate proper nouns unless customary.\n"
+            f"4. Respond ONLY with a valid JSON array of strings, keeping the exact same order and number of lines. "
+            f"Example: [\"line 1\", \"line 2\"].\n"
+            f"Do NOT include conversational text, markdown blocks, or explanations."
+        )
         
         messages = [
             {"role": "user", "content": f"{system_instruction}\n\nLines to translate:\n{numbered_input}"}
