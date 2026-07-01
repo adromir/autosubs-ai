@@ -56,7 +56,7 @@ function Install-Standard {
         if ([string]::IsNullOrWhiteSpace($AUTH_PASSWORD)) { Write-Host "Password cannot be empty." -ForegroundColor Yellow }
     }
 
-    & .\venv\Scripts\python.exe backend\set_credentials.py $AUTH_USERNAME $AUTH_PASSWORD
+    & .\venv\Scripts\python.exe backend\set_credentials.py "$AUTH_USERNAME" "$AUTH_PASSWORD"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Failed to save credentials to .env" -ForegroundColor Red
         Read-Host "Press Enter to exit"
