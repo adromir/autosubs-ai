@@ -12,7 +12,7 @@ hf-transfer>=0.1.9
 huggingface_hub
 requests
 plyer
-pandas==2.2.3
+pandas==3.0.3
 nltk>=3.8.1
 av==15.1.0
 tokenizers
