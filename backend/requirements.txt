@@ -1,7 +1,7 @@
 fastapi>=0.110.0
 uvicorn>=0.31.1
 ffmpeg-python==0.2.0
-transformers>=4.40.0
+transformers>=5.12.1
 accelerate>=0.28.0
 pysubs2>=1.7.0
 sse-starlette>=2.0.0
