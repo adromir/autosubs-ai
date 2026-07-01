@@ -31,6 +31,7 @@ class JobStatus(BaseModel):
     vad_onset: float = 0.500
     vad_offset: float = 0.363
     vad_model: str = "pyannote"
+    cleaning_method: str = "none"
     fetch_internet_subs: bool = False
     allow_title_match: bool = False
     use_nfo: bool = False
@@ -66,7 +67,7 @@ class JobManager:
         for q in self.listeners:
             await q.put(payload)
 
-    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "", enable_extraction: bool = True, enable_transcription: bool = True, emby_naming: bool = False, auto_janitor: bool = True) -> JobStatus:
+    def create_job(self, filepath: str, target_languages: List[str], base_language: str, model_size: str, provider: str = "auto", engine: str = "faster-whisper", ignore_forced_subs: bool = True, custom_prompt: str = "", use_vad: bool = True, translation_engine: str = "nllb", llm_model: str = "", hardcode_subs: bool = False, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", cleaning_method: str = "none", fetch_internet_subs: bool = False, allow_title_match: bool = False, use_nfo: bool = False, auto_sync: bool = False, fallback_to_targets: bool = False, fetch_all_available: bool = False, llm_model_path: str = "", enable_extraction: bool = True, enable_transcription: bool = True, emby_naming: bool = False, auto_janitor: bool = True) -> JobStatus:
         job_id = str(uuid.uuid4())
         now = datetime.now()
         job = JobStatus(
@@ -93,6 +94,7 @@ class JobManager:
             vad_onset=vad_onset,
             vad_offset=vad_offset,
             vad_model=vad_model,
+            cleaning_method=cleaning_method,
             fetch_internet_subs=fetch_internet_subs,
             allow_title_match=allow_title_match,
             use_nfo=use_nfo,

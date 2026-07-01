@@ -131,6 +131,7 @@ export function ConfigPanel({ onProcess, disabled }) {
   const [vadOnset, setVadOnset] = useState(0.500);
   const [vadOffset, setVadOffset] = useState(0.363);
   const [vadModel, setVadModel] = useState('pyannote');
+  const [cleaningMethod, setCleaningMethod] = useState('none');
   const [fallbackToTargets, setFallbackToTargets] = useState(false);
   const [fetchInternetSubs, setFetchInternetSubs] = useState(false);
   const [enableExtraction, setEnableExtraction] = useState(true);
@@ -184,6 +185,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       Math.abs(vadOnset - (p.vad_onset ?? 0.500)) > 0.001,
       Math.abs(vadOffset - (p.vad_offset ?? 0.363)) > 0.001,
       vadModel !== (p.vad_model ?? 'pyannote'),
+      cleaningMethod !== (p.cleaning_method ?? 'none'),
       fetchInternetSubs !== (p.fetch_internet_subs ?? false),
       enableExtraction !== (p.enable_extraction ?? true),
       enableTranscription !== (p.enable_transcription ?? true),
@@ -232,6 +234,7 @@ export function ConfigPanel({ onProcess, disabled }) {
     setVadOnset(p.vad_onset !== undefined ? p.vad_onset : 0.500);
     setVadOffset(p.vad_offset !== undefined ? p.vad_offset : 0.363);
     setVadModel(p.vad_model);
+    setCleaningMethod(p.cleaning_method ?? 'none');
     setFallbackToTargets(p.fallback_to_targets || false);
     setFetchInternetSubs(p.fetch_internet_subs);
     setEnableExtraction(p.enable_extraction ?? true);
@@ -268,6 +271,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       vad_onset: vadOnset,
       vad_offset: vadOffset,
       vad_model: vadModel,
+      cleaning_method: cleaningMethod,
       fallback_to_targets: fallbackToTargets,
       fetch_internet_subs: fetchInternetSubs,
       enable_extraction: enableExtraction,
@@ -878,6 +882,19 @@ IMPORTANT: You MUST enable and prioritize your preferred providers (e.g., OpenSu
           </div>
 
           <div style={{ marginLeft: '1.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', opacity: fetchInternetSubs ? 1 : 0.5, pointerEvents: fetchInternetSubs ? 'auto' : 'none' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Subtitle Cleaning Method</label>
+              <CustomSelect 
+                value={cleaningMethod} 
+                onChange={(e) => setCleaningMethod(e.target.value)}
+                disabled={!fetchInternetSubs}
+                options={[
+                  { value: 'none', label: 'None (Keep Original)' },
+                  { value: 'ai', label: 'AI (LLM Prompting)' },
+                  { value: 'vad', label: 'VAD (Audio Analysis)' }
+                ]}
+              />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <input 
                 type="checkbox" 

@@ -188,7 +188,8 @@ async def process_phase_1(job):
                     allow_title_match=getattr(job, "allow_title_match", False),
                     use_nfo=getattr(job, "use_nfo", False),
                     deep_cleanup=getattr(job, "deep_cleanup", True),
-                    emby_naming=getattr(job, "emby_naming", False)
+                    emby_naming=getattr(job, "emby_naming", False),
+                    cleaning_method=getattr(job, "cleaning_method", "none")
                 )
             
             if fetch_results:
@@ -267,7 +268,8 @@ async def process_phase_1(job):
                     provider_configs,
                     allow_title_match=getattr(job, "allow_title_match", False),
                     use_nfo=getattr(job, "use_nfo", False),
-                    emby_naming=getattr(job, "emby_naming", False)
+                    emby_naming=getattr(job, "emby_naming", False),
+                    cleaning_method=getattr(job, "cleaning_method", "none")
                 )
                 
                 if fetch_result:
@@ -305,7 +307,13 @@ async def process_phase_1(job):
 
         if found_source:
             job.actual_source_lang = found_source
-            await job_manager.update_job(job.id, status="awaiting_translation", progress=40.0, message=f"Source ({found_source}) acquired. Awaiting translation")
+            
+            # Check if any .dirty.srt files were downloaded
+            dirty_files = [f for f in os.listdir(Path(job.filepath).parent) if f.startswith(Path(job.filepath).stem) and f.endswith(".dirty.srt")]
+            if dirty_files:
+                await job_manager.update_job(job.id, status="awaiting_cleaning", progress=40.0, message=f"Source ({found_source}) acquired. Awaiting cleaning")
+            else:
+                await job_manager.update_job(job.id, status="awaiting_translation", progress=40.0, message=f"Source ({found_source}) acquired. Awaiting translation")
         else:
             if not getattr(job, "enable_transcription", True):
                 print(f" -> No subtitles found and AI transcription is disabled.")
@@ -409,6 +417,81 @@ async def process_phase_2(job):
 
         await asyncio.to_thread(sanitize_and_refine, _get_srt_path(job.filepath, job.actual_source_lang, getattr(job, "emby_naming", False)), deep_cleanup=job.deep_cleanup)
         await job_manager.update_job(job.id, status="awaiting_translation", progress=60.0, message="Transcription complete", transcribed=True)
+
+    except Exception as e:
+        if is_cancelled(): 
+            return
+        await job_manager.update_job(job.id, status="failed", progress=0.0, message=str(e))
+
+
+async def process_phase_2_5(job):
+    """
+    Phase 2.5: Deep Cleaning
+    Removes spam, ads, and credits from downloaded subtitles.
+    """
+    def is_cancelled():
+        return job.status == "cancelled"
+
+    try:
+        if is_cancelled(): return
+        print(f"\n[PHASE 2.5] Starting Subtitle Cleaning for: {_get_filename(job.filepath)}")
+        
+        from services.subtitle_cleaner import clean_subtitles
+        
+        dirty_files = [f for f in os.listdir(Path(job.filepath).parent) if f.startswith(Path(job.filepath).stem) and f.endswith(".dirty.srt")]
+        
+        method = getattr(job, "cleaning_method", "none")
+        if not dirty_files or method == "none":
+            await job_manager.update_job(job.id, status="awaiting_translation", progress=50.0, message="Skipping cleaning")
+            return
+            
+        temp_audio = _get_temp_audio_path(job.filepath)
+        if method == "vad" and not os.path.exists(temp_audio):
+            # Extract audio if VAD is selected but we didn't extract it yet
+            await job_manager.update_job(job.id, status="extracting_audio", progress=42.0, message="Extracting audio for VAD cleaning")
+            media_info = await asyncio.to_thread(probe_video, job.filepath, job.ignore_forced_subs)
+            audio_idx, _ = _select_best_audio(media_info, job.base_language, job.target_languages, getattr(job, "fallback_to_targets", False))
+            if audio_idx is None:
+                if media_info.audio_tracks: audio_idx = media_info.audio_tracks[0].index
+                else: raise RuntimeError("No audio available for VAD cleaning")
+            await asyncio.to_thread(extract_audio, job.filepath, temp_audio, audio_idx)
+            
+        total_dirty = len(dirty_files)
+        for i, df in enumerate(dirty_files):
+            if is_cancelled(): return
+            
+            dirty_path = str(Path(job.filepath).parent / df)
+            await job_manager.update_job(job.id, status="cleaning", progress=42.0 + (i / total_dirty) * 15.0, message=f"Cleaning subtitle ({method}) {i+1}/{total_dirty}")
+            
+            success = await asyncio.to_thread(
+                clean_subtitles,
+                dirty_path,
+                method,
+                getattr(job, "vad_model", "pyannote"),
+                temp_audio,
+                getattr(job, "llm_model_path", ""),
+                getattr(job, "vad_onset", 0.5),
+                getattr(job, "vad_offset", 0.363),
+                job.id,
+                job_manager
+            )
+            
+            if not success:
+                print(f"[Cleaner] Cleaning failed for {df}, but continuing with uncleaned file.")
+                # If cleaning fails, we just rename it to normal so it gets used anyway
+                temp_out = dirty_path + ".cleaned.srt"
+                if os.path.exists(temp_out): os.remove(temp_out)
+                
+            # Rename the .dirty.srt to .srt
+            # Note: clean_subtitles replaces the file content if successful. We just need to rename the file extension.
+            # Wait, clean_subtitles replaced temp_out with dirty_path. So dirty_path now has the cleaned content.
+            # We must rename dirty_path to the normal .srt name.
+            clean_name = dirty_path.replace(".dirty.srt", ".srt")
+            if os.path.exists(clean_name):
+                os.remove(clean_name)
+            os.rename(dirty_path, clean_name)
+            
+        await job_manager.update_job(job.id, status="awaiting_translation", progress=60.0, message="Cleaning complete")
 
     except Exception as e:
         if is_cancelled(): 
@@ -543,6 +626,9 @@ async def background_worker():
             
         p2 = [j for j in all_jobs if j.status == "awaiting_transcription"]
         if p2: await process_phase_2(p2[0]); continue
+            
+        p2_5 = [j for j in all_jobs if j.status == "awaiting_cleaning"]
+        if p2_5: await process_phase_2_5(p2_5[0]); continue
             
         p3 = [j for j in all_jobs if j.status == "awaiting_translation"]
         if p3: await process_phase_3(p3[0]); continue

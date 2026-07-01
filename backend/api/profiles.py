@@ -22,6 +22,7 @@ class ProfileData(BaseModel):
     llm_model: str
     hardcode: bool
     deep_cleanup: bool = True
+    cleaning_method: str = "none"
     vad_onset: float = 0.500
     vad_offset: float = 0.363
     vad_model: str = "pyannote"

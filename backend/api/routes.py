@@ -183,6 +183,7 @@ class JobCreateRequest(BaseModel):
     vad_onset: float = 0.500
     vad_offset: float = 0.363
     vad_model: str = "pyannote"
+    cleaning_method: str = "none"
     enable_extraction: bool = True
     enable_transcription: bool = True
     emby_naming: bool = False
@@ -228,6 +229,7 @@ def create_jobs(request: JobCreateRequest):
             vad_onset=request.vad_onset,
             vad_offset=request.vad_offset,
             vad_model=request.vad_model,
+            cleaning_method=request.cleaning_method,
             fetch_all_available=request.fetch_all_available,
             llm_model_path=request.llm_model_path,
             enable_extraction=request.enable_extraction,
@@ -270,6 +272,7 @@ def create_jobs(request: JobCreateRequest):
                 vad_onset=request.vad_onset,
                 vad_offset=request.vad_offset,
                 vad_model=request.vad_model,
+                cleaning_method=request.cleaning_method,
                 fetch_all_available=request.fetch_all_available,
                 llm_model_path=request.llm_model_path,
                 enable_extraction=request.enable_extraction,
