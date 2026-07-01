@@ -23,31 +23,27 @@ If you only ever process certain languages, you can constrain the UI dropdown me
 A **Job Profile** defines the exact parameters for a given folder. When you submit a job from the `Dashboard`, you select a Profile.
 
 ### Core Parameters
-- **Source Language**: The spoken language of the video file (e.g., `Japanese`). Set to `auto` to let Whisper detect the language automatically.
-- **Target Language**: The language you want the final subtitle to be in (e.g., `English`). If this differs from the Source Language, the Translation phase is triggered.
+- **Source Language**: The spoken language of the video file.
+- **Target Language**: The language you want the final subtitle to be in. If this differs from the Source Language, the Translation phase is triggered.
+- **Transcription Model**: The Whisper model size to use (`base`, `small`, `medium`, `large-v3`).
+- **Translation Engine**: The engine used if translation is needed (`Native LLM` vs `NLLB`).
 
-### Advanced Parameters
+### Pipeline Toggles
+These settings dictate which steps of the 5-phase pipeline are permitted to run:
+- **Enable Extraction**: Allows AutoSubs AI to check the video file (e.g., MKV) and extract pre-existing embedded subtitle tracks.
+- **Fetch Internet Subs**: Allows searching external databases (SubSource, SubDL, etc.) for existing subtitles to save time.
+  - *Allow Title Match*: If an exact hash match fails, allows matching purely based on the movie/episode title.
+  - *Use NFO*: Reads local `.nfo` files created by media managers (like Sonarr/Radarr) to improve fetching accuracy.
+  - *Fetch All Available*: Downloads all matches found rather than just the top result.
+- **Enable Transcription**: If no subtitle is found via Extraction or Fetching, this allows the Whisper AI to generate one from scratch.
 
-#### Beam Size
-*Affects: Transcription (Whisper)*
-Beam Search is an algorithm Whisper uses to predict the next word. It explores multiple possible text paths simultaneously.
-- **Default (`5`)**: Provides the best balance between accuracy and speed.
-- **Lower (e.g., `1` or `2`)**: Faster inference, but the AI might misunderstand complex audio or mumble.
-- **Higher (e.g., `10`)**: Extremely accurate, but linearly increases transcription time and VRAM usage. Use this for highly technical audio or thick accents.
+### Subtitle Processing & Synchronization
+- **Auto Sync**: Automatically runs fetched or extracted subtitles through FFsubsync and VAD to fix timing offsets against the audio track.
+- **Use VAD**: Voice Activity Detection. Helps identify human speech timestamps to ensure silent parts aren't hallucinated by Whisper.
+  - *VAD Onset / Offset*: Advanced threshold tuning for when speech is considered to have started or stopped.
+- **Deep Cleanup & Cleaning Method**: Instructs the system to scrub downloaded subtitles of spam, URLs, and ads. The `LLM` cleaning method uses Native LLM models for highly intelligent context-aware stripping.
+- **Hardcode**: Burns the final subtitle directly into the video file (requires re-encoding).
 
-#### Compute Type
-*Affects: Transcription (Whisper)*
-Determines the mathematical precision of the neural network weights.
-- **`float16`**: Recommended for GPUs. Uses half-precision mathematics, cutting memory usage in half and significantly speeding up inference with zero noticeable accuracy loss.
-- **`int8`**: Recommended for CPU-only execution. Heavily quantizes the model, trading a very minor amount of accuracy for a massive boost in CPU speed.
-- **`float32`**: Full precision. Extremely slow and memory-heavy; generally not recommended unless debugging floating-point errors.
-
-#### VAD Filter (Voice Activity Detection)
-*Affects: Transcription (Whisper)*
-- **Enabled (Recommended)**: Runs a highly efficient VAD pass over the audio to identify segments without human speech (e.g., long musical intro, silence). These segments are completely skipped by Whisper. This drastically reduces hallucination (where Whisper tries to translate music into random words) and speeds up transcription.
-- **Disabled**: Whisper listens to every single second of audio.
-
-#### Translate Phase Mode
-*Affects: Native LLM Translation*
-- **Sequential**: Translates the subtitle file one line at a time. It maintains absolute structural integrity but is extremely slow.
-- **Batch (Recommended)**: Groups multiple lines of dialogue into chunks and translates them simultaneously. It utilizes the LLM's parallel processing capabilities, resulting in massive speedups (often 10x faster). The built-in prompt engineering ensures the SRT timestamps are preserved perfectly during the batch response.
+### File Management
+- **Emby Naming**: Forces output subtitles to follow strict Jellyfin/Emby naming conventions (e.g., adding explicit ISO codes to the filename).
+- **Auto Janitor**: Automatically deletes intermediate audio extractions and temporary subtitle files after the job completes, saving disk space.
