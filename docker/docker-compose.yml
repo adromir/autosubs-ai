@@ -49,22 +49,6 @@ services:
               count: 1
               capabilities: [gpu]
 
-  autosubs-directml:
-    build:
-      context: .
-      dockerfile: Dockerfile.directml
-    profiles: ["directml"]
-    ports:
-      - "8000:8000"
-    environment:
-      - TZ=UTC
-      - AUTH_USERNAME=admin
-      - AUTH_PASSWORD=secret
-    volumes:
-      - .:/app/data
-      # Map your media folders here:
-      # - /mnt/user/movies:/movies
-      # - /mnt/user/tvshows:/tv
 
   autosubs-cpu:
     build:

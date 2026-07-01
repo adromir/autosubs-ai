@@ -70,13 +70,7 @@ def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, s
     device_name = "cpu"
     if provider in ["cuda", "nvidia", "rocm", "amd", "auto"] and torch.cuda.is_available():
         device_name = "cuda:0"
-    elif provider == "directml" or (provider == "auto" and 'torch_directml' in sys.modules):
-        try:
-            import torch_directml
-            device_name = torch_directml.device()
-        except ImportError:
-            pass
-            
+
     model_name = "facebook/nllb-200-distilled-600M"
     cache_dir = Path(__file__).parent.parent / "model_cache" / "nllb"
     cache_dir.mkdir(parents=True, exist_ok=True)

@@ -181,7 +181,6 @@ def prompt_provider_choice(has_amd, has_nvidia, config):
             colored_print("   --> Detected AMD GPU on Windows.", 10)
             colored_print("       Best options:", 14)
             colored_print("         [1] ROCm 7.2  -- RECOMMENDED  (Faster-Whisper & WhisperX, native Windows, ctranslate2 ROCm)", 10)
-            colored_print("         [4] DirectML  -- Simpler setup, Transformers engine only", 14)
     else:
         colored_print("   --> No dedicated GPU detected.", 10)
         colored_print("       Recommended: [5] CPU  (Faster-Whisper INT8, no GPU required)", 14)
@@ -191,12 +190,11 @@ def prompt_provider_choice(has_amd, has_nvidia, config):
     print("  [1]  AMD ROCm (Windows/Linux) - Full support: Faster-Whisper, WhisperX, Transformers")
     print("  [2]  NVIDIA CUDA 12.1         - Modern NVIDIA GPUs (all engines)")
     print("  [3]  NVIDIA CUDA 11.8         - Older NVIDIA GPUs (all engines)")
-    print("  [4]  DirectML                 - Windows AMD/Intel/NVIDIA (Transformers engine only)")
-    print("  [5]  CPU Only                 - No GPU, universal fallback")
+    print("  [4]  CPU Only                 - No GPU, universal fallback")
     print()
 
     try:
-        choice = input("Enter your choice (1-5): ").strip()
+        choice = input("Enter your choice (1-4): ").strip()
     except KeyboardInterrupt:
         print("\nInstallation cancelled.")
         sys.exit(0)
@@ -494,10 +492,10 @@ def install():
             "--index-url", "https://download.pytorch.org/whl/cu118"
         ])
     elif choice == "4":
-        colored_print("\n>>> Installing PyTorch CPU + torch-directml...", 10)
+        colored_print("\n>>> Installing PyTorch for CPU...", 10)
         subprocess.check_call([
             pip_exe, "-m", "pip", "install",
-            "torch", "torchaudio", "torch-directml"
+            "torch", "torchaudio"
         ])
     else:
         colored_print("\n>>> Installing PyTorch for CPU...", 10)

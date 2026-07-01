@@ -85,19 +85,12 @@ def get_hardware():
     if cuda_av and rocm_av:
         cuda_av = False 
     
-    try:
-        import torch_directml
-        dml_av = torch_directml.is_available()
-    except Exception:
-        dml_av = False
-        
     return {
         "os": sys.platform,
         "providers": [
             {"id": "auto", "name": "Auto (Default)", "available": True},
             {"id": "nvidia", "name": "NVIDIA CUDA", "available": cuda_av},
             {"id": "amd", "name": "AMD ROCm", "available": rocm_av},
-            {"id": "directml", "name": "DirectML (Windows)", "available": dml_av},
             {"id": "cpu", "name": "CPU Only", "available": True}
         ]
     }

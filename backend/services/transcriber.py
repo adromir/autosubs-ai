@@ -366,15 +366,7 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
         device = "cpu"
         compute_type = "int8"
 
-    if provider == "directml" or (provider == "auto" and device == "cpu"):
-        try:
-            import torch_directml
-            if torch_directml.is_available():
-                device = "privateuseone"
-                engine = "whisper"
-        except ImportError:
-            pass
-            
+
     print(f"Executing Transcription with engine={engine}, provider={provider}, assigned_device={device}")
 
     # ===== ENGINE: FASTER-WHISPER =====
@@ -667,16 +659,12 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
             traceback.print_exc()
             print("Falling back to HuggingFace Transformers...")
             engine = "whisper"
-
     # ===== ENGINE: WHISPER (Transformers native) =====
     if engine == "whisper":
         from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
         
         hf_device = "cpu"
-        if device == "privateuseone":
-            import torch_directml
-            hf_device = torch_directml.device()
-        elif device == "cuda":
+        if device == "cuda":
             hf_device = "cuda:0"
             
         if _transcription_cache["engine"] != "whisper" or _transcription_cache["model_size"] != model_size or _transcription_cache["device"] != hf_device:
