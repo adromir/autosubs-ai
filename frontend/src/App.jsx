@@ -18,7 +18,17 @@ window.fetch = async function () {
     if (token) {
       if (!config) config = {};
       if (!config.headers) config.headers = {};
-      config.headers['Authorization'] = `Bearer ${token}`;
+      
+      if (config.headers instanceof Headers) {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else if (Array.isArray(config.headers)) {
+        // Prevent duplicate if modifying an array
+        const authIndex = config.headers.findIndex(h => h[0].toLowerCase() === 'authorization');
+        if (authIndex >= 0) config.headers[authIndex][1] = `Bearer ${token}`;
+        else config.headers.push(['Authorization', `Bearer ${token}`]);
+      } else {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
     }
   }
   
