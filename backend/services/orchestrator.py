@@ -173,7 +173,8 @@ async def process_phase_1(job):
                 provider_configs,
                 allow_title_match=getattr(job, "allow_title_match", False),
                 use_nfo=getattr(job, "use_nfo", False),
-                deep_cleanup=getattr(job, "deep_cleanup", True)
+                deep_cleanup=getattr(job, "deep_cleanup", True),
+                emby_naming=getattr(job, "emby_naming", False)
             )
             
             if fetch_results:
@@ -231,7 +232,8 @@ async def process_phase_1(job):
                     providers_to_use,
                     provider_configs,
                     allow_title_match=getattr(job, "allow_title_match", False),
-                    use_nfo=getattr(job, "use_nfo", False)
+                    use_nfo=getattr(job, "use_nfo", False),
+                    emby_naming=getattr(job, "emby_naming", False)
                 )
                 
                 if fetch_result:

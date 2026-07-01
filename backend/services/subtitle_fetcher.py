@@ -17,6 +17,13 @@ logging.basicConfig(level=logging.INFO)
 import xml.etree.ElementTree as ET
 import charset_normalizer
 
+EMBY_LANG_MAP = {
+    "en": "eng", "de": "ger", "es": "spa", "fr": "fre", "it": "ita", "pt": "por", 
+    "nl": "dut", "ru": "rus", "ja": "jpn", "zh": "chi", "ko": "kor", "pl": "pol", 
+    "tr": "tur", "id": "ind", "hi": "hin", "ar": "ara", "sv": "swe", "da": "dan", 
+    "fi": "fin", "no": "nor", "cs": "cze", "el": "gre", "hu": "hun", "ro": "rum"
+}
+
 def sanitize_srt(filepath: str):
     """
     Ensures the SRT file is UTF-8 encoded with Unix line endings (\n).
@@ -117,7 +124,8 @@ def fetch_subtitle(
     providers: List[str], 
     provider_configs: Dict[str, Dict[str, str]],
     allow_title_match: bool = False,
-    use_nfo: bool = False
+    use_nfo: bool = False,
+    emby_naming: bool = False
 ) -> Optional[Dict]:
     """
     Downloads a subtitle for the given video path using Subliminal 2.6.0.
@@ -198,10 +206,7 @@ def fetch_subtitle(
                     ss_subs = ss_client.get_subtitles(ss_movie_id, language_code)
                     if ss_subs:
                         best_ss = ss_subs[0]
-                        # Use new naming convention: moviename.langCODE.srt
-                        full_lang = f"{language_code}_{language_code.upper()}"
-                        video_stem = Path(video_path).stem
-                        output_path = str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
+                        output_path = _get_output_path(video_path, language_code, emby_naming)
                         
                         if ss_client.download_subtitle(best_ss['subtitleId'], output_path):
                             print(f"[Fetcher] SubSource download successful: {best_ss['subtitleId']}")
@@ -233,9 +238,7 @@ def fetch_subtitle(
                     best_subdl = subdl_list[0]
                     dl_url = best_subdl.get('n_id') or best_subdl.get('nId') or best_subdl.get('id') or best_subdl.get('url')
                     if dl_url:
-                        full_lang = f"{language_code}_{language_code.upper()}"
-                        video_stem = Path(video_path).stem
-                        output_path = str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
+                        output_path = _get_output_path(video_path, language_code, emby_naming)
                         
                         if subdl_client.download_and_extract(dl_url, output_path):
                             print(f"[Fetcher] SubDL download + extraction successful")
@@ -267,9 +270,7 @@ def fetch_subtitle(
         if downloaded and video in downloaded and downloaded[video]:
             sub = downloaded[video][0]
             
-            full_lang = f"{language_code}_{language_code.upper()}"
-            video_stem = Path(video_path).stem
-            output_path = str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
+            output_path = _get_output_path(video_path, language_code, emby_naming)
             
             # Subliminal downloads the content into the Subtitle object. We need to save it.
             # Usually download_best_subtitles saves them if we don't handle it.
@@ -303,7 +304,8 @@ def fetch_all_subtitles(
     provider_configs: Dict[str, Dict[str, str]],
     allow_title_match: bool = False,
     use_nfo: bool = False,
-    deep_cleanup: bool = True
+    deep_cleanup: bool = True,
+    emby_naming: bool = False
 ) -> List[Dict]:
     """
     Attempts to download subtitles for EVERY target language in the list.
@@ -360,7 +362,7 @@ def fetch_all_subtitles(
                 ss_client = SubSourceClient(provider_configs["subsource"]["api_key"])
                 ss_subs = ss_client.get_subtitles(movie_ids["subsource"], lang_code)
                 if ss_subs:
-                    output_path = _get_output_path(video_path, lang_code)
+                    output_path = _get_output_path(video_path, lang_code, emby_naming)
                     if ss_client.download_subtitle(ss_subs[0]['subtitleId'], output_path):
                         sanitize_and_refine(output_path, deep_cleanup=deep_cleanup)
                         results.append({"path": output_path, "provider": "subsource", "lang": lang_code})
@@ -375,7 +377,7 @@ def fetch_all_subtitles(
                     best_subdl = subdl_list[0]
                     dl_url = best_subdl.get('n_id') or best_subdl.get('nId') or best_subdl.get('id') or best_subdl.get('url')
                     if dl_url:
-                        output_path = _get_output_path(video_path, lang_code)
+                        output_path = _get_output_path(video_path, lang_code, emby_naming)
                         if subdl_client.download_and_extract(dl_url, output_path):
                             sanitize_and_refine(output_path, deep_cleanup=deep_cleanup)
                             results.append({"path": output_path, "provider": "subdl", "lang": lang_code})
@@ -389,17 +391,21 @@ def fetch_all_subtitles(
             downloaded = subliminal.download_best_subtitles([video], {target_lang}, providers=sub_providers, provider_configs=provider_configs, only_one=True)
             if downloaded and video in downloaded and downloaded[video]:
                 sub = downloaded[video][0]
-                output_path = _get_output_path(video_path, lang_code)
+                output_path = _get_output_path(video_path, lang_code, emby_naming)
                 with open(output_path, 'wb') as f: f.write(sub.content)
                 sanitize_and_refine(output_path, deep_cleanup=deep_cleanup)
                 results.append({"path": output_path, "provider": sub.provider_name, "lang": lang_code})
 
     return results
 
-def _get_output_path(video_path: str, lang_code: str) -> str:
-    full_lang = f"{lang_code}_{lang_code.upper()}"
+def _get_output_path(video_path: str, lang_code: str, emby_naming: bool = False) -> str:
     video_stem = Path(video_path).stem
-    return str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
+    if emby_naming:
+        emby_lang = EMBY_LANG_MAP.get(lang_code, lang_code)
+        return str(Path(video_path).parent / f"{video_stem}.{emby_lang}.srt")
+    else:
+        full_lang = f"{lang_code}_{lang_code.upper()}"
+        return str(Path(video_path).parent / f"{video_stem}.{full_lang}.srt")
 
 def sync_subtitle(video_path: str, subtitle_path: str, audio_stream_index: Optional[int] = None, vad_engine: str = "silero") -> bool:
     """
