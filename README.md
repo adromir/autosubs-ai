@@ -30,9 +30,25 @@
 
 ---
 
+## 🤔 What is it & Why use it?
+
+Finding the perfect subtitle for a video file is a notorious headache. Sometimes the subtitle is out of sync by seconds, sometimes it's machine-translated gibberish, and sometimes it simply doesn't exist. **AutoSubs AI solves this completely autonomously.**
+
+**Who is this for?**
+- 🌍 **Foreign Cinema Enthusiasts**: Love Anime or international cinema? Use our dual-engine LLM translation to convert raw foreign audio into high-quality, localized English subtitles.
+- 🍿 **Plex / Jellyfin / Emby Power Users**: Keep your media server pristine. Automatically fetch the best web-subtitles and sync them directly to your video's audio track. No more shifting subtitles mid-movie!
+- 🦻 **Accessibility**: Create incredibly accurate closed captions on the fly for uncaptioned videos using industry-standard AI like `WhisperX`.
+- 🎥 **Content Creators**: Transcribe your raw footage instantly, generate SRTs, and prepare your content for global audiences.
+
+With a fully automated job queue, you just drag and drop a folder of movies, pick a profile, and walk away. AutoSubs AI handles the rest.
+
 ---
 
 ## 🚀 Key Features
+
+### 🔒 Secure & Private
+- **Zero Cloud Dependence**: Everything runs locally on your hardware. Your files and transcripts never leave your machine.
+- **Built-in Security**: Hardened with Token-based Bearer Authentication and a fully secured Login UI, allowing safe deployments on local networks.
 
 ### 🔍 Comprehensive Subtitle Discovery
 Choose the best source for your media. AutoSubs AI automates the entire search:
@@ -42,7 +58,6 @@ Choose the best source for your media. AutoSubs AI automates the entire search:
 
 ### 🧠 Dual-Engine AI Translation
 AutoSubs AI features a versatile, high-performance translation pipeline designed for precision and speed:
-
 *   **Premium: Native LLM (GGUF)**: Powered by `llama-cpp-python`, utilizing state-of-the-art models like **Llama 3 (8B)** or **Gemma 2 (9B)** entirely in-process. 
     *   **Context Aware**: Best for capturing nuances, slang, and complex dialogue flow.
     *   **GPU Accelerated**: Full ROCm/HIP and CUDA offloading for lightning-fast inference.
@@ -50,7 +65,6 @@ AutoSubs AI features a versatile, high-performance translation pipeline designed
 *   **High-Speed: NLLB-200**: Based on Facebook's *No Language Left Behind* project.
     *   **Maximum Performance**: Optimized for rapid, sentence-level translation across 200+ languages.
     *   **Lightweight**: Minimal VRAM footprint, ideal for background processing while multi-tasking.
-*   **VRAM Handover**: Automatically clears transcription memory before loading translation models to maximize stability on consumer-grade GPUs.
 
 ### 🔄 Automatic Audio Synchronization
 Never deal with "out of sync" subtitles again:
@@ -85,7 +99,7 @@ AutoSubs AI is optimized for high-performance hardware. Please ensure your syste
 #### 1️⃣ Native Windows Installation
 1. Install the **[AMD ROCm 7.1 SDK](https://www.amd.com/en/developer/rocm-hub/hip-sdk.html)** (or CUDA for NVIDIA).
 2. Install **Visual Studio 2022 Build Tools** (Select "Desktop development with C++").
-3. Run `install.bat`. It will autodetect your hardware (including GFX architecture) and configure your environment.
+3. Run `install.bat`. It will autodetect your hardware and ask you to create a secure admin account for the Web UI.
 
 #### 2️⃣ Native Linux Installation (Debian/Ubuntu)
 **For AMD ROCm (7.1+):**
@@ -101,13 +115,19 @@ sudo amdgpu-install --usecase=rocm,hiplibsdk,dkms
 sudo apt update
 sudo apt install nvidia-cuda-toolkit
 ```
+Run `bash install.sh`.
 
-4. Run `bash install.sh`.
+#### 3️⃣ Docker Deployment (Recommended for Servers)
+Pre-built Docker containers are automatically published to the GitHub Container Registry (GHCR) via GitHub Actions!
 
-#### 3️⃣ Docker Deployment
-*   **ROCm 7.1 (AMD)**: `docker compose --profile rocm up -d --build`
-*   **CUDA 12.1 (NVIDIA)**: `docker compose --profile cuda up -d --build`
-*   **Standard CPU**: `docker compose --profile cpu up -d --build`
+1. **CPU Only**: `docker pull ghcr.io/adromir/autosubs-ai:latest-cpu`
+2. **NVIDIA CUDA**: `docker pull ghcr.io/adromir/autosubs-ai:latest-cuda`
+3. **AMD ROCm**: `docker pull ghcr.io/adromir/autosubs-ai:latest-rocm`
+
+Alternatively, build and run locally with Compose:
+```bash
+docker compose --profile cuda up -d --build
+```
 
 ---
 
@@ -126,16 +146,6 @@ For the best experience, we recommend the following model choices based on your 
 
 ### **Synchronization**
 *   **VAD Engine**: Use `webrtc` for general synchronization. It is the most stable choice for background audio processing.
-
----
-
-## ⚙️ Settings Overview
-| Setting | Description | Recommended |
-| :--- | :--- | :--- |
-| **Beam Size** | Search depth for Whisper. | `5` |
-| **VAD Filter** | Removes noise/silence. | `Enabled` |
-| **Compute Type** | Precision mode. | `float16` (GPU) or `int8` (CPU) |
-| **Translate Phase** | Sequential vs Batch. | `Batch` for NLLB, `Sequential` for Ollama |
 
 ---
 
