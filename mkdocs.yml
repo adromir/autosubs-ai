@@ -31,6 +31,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Recommended Profiles & Settings: Recommended-Profiles.md
   - Configuration & Parameters: Configuration-and-Parameters.md
   - AI Models Comparison: AI-Models-Comparison.md
   - Roadmap & ToDo: Roadmap-and-ToDo.md

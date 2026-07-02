@@ -37,6 +37,7 @@
 For in-depth explanations, configuration parameters, and our development roadmap, please visit our **[Official Documentation Site](https://adromir.github.io/autosubs-ai/)**!
 
 - 📚 [Pipeline Overview & Use Cases](https://adromir.github.io/autosubs-ai/)
+- 🎯 [Recommended Profiles & Settings](https://adromir.github.io/autosubs-ai/Recommended-Profiles/)
 - ⚙️ [Configuration & Parameters Guide](https://adromir.github.io/autosubs-ai/Configuration-and-Parameters/)
 - 🤖 [AI Models & Engines Comparison](https://adromir.github.io/autosubs-ai/AI-Models-Comparison/)
 - 🗺️ [Development Roadmap & ToDo](https://adromir.github.io/autosubs-ai/Roadmap-and-ToDo/)
