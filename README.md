@@ -34,12 +34,12 @@
 
 ## 📖 Documentation & Wiki
 
-For in-depth explanations, configuration parameters, and our development roadmap, please visit our **[GitHub Wiki](https://github.com/adromir/autosubs-ai/wiki)**!
+For in-depth explanations, configuration parameters, and our development roadmap, please visit our **[Official Documentation Site](https://adromir.github.io/autosubs-ai/)**!
 
-- 📚 [Pipeline Overview & Use Cases](https://github.com/adromir/autosubs-ai/wiki/Home)
-- ⚙️ [Configuration & Parameters Guide](https://github.com/adromir/autosubs-ai/wiki/Configuration-and-Parameters)
-- 🤖 [AI Models & Engines Comparison](https://github.com/adromir/autosubs-ai/wiki/AI-Models-Comparison)
-- 🗺️ [Development Roadmap & ToDo](https://github.com/adromir/autosubs-ai/wiki/Roadmap-and-ToDo)
+- 📚 [Pipeline Overview & Use Cases](https://adromir.github.io/autosubs-ai/)
+- ⚙️ [Configuration & Parameters Guide](https://adromir.github.io/autosubs-ai/Configuration-and-Parameters/)
+- 🤖 [AI Models & Engines Comparison](https://adromir.github.io/autosubs-ai/AI-Models-Comparison/)
+- 🗺️ [Development Roadmap & ToDo](https://adromir.github.io/autosubs-ai/Roadmap-and-ToDo/)
 
 ---
 

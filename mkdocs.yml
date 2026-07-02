@@ -1,0 +1,36 @@
+site_name: AutoSubs AI
+site_url: https://adromir.github.io/autosubs-ai/
+repo_url: https://github.com/adromir/autosubs-ai
+repo_name: adromir/autosubs-ai
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+  palette:
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Configuration & Parameters: Configuration-and-Parameters.md
+  - AI Models Comparison: AI-Models-Comparison.md
+  - Roadmap & ToDo: Roadmap-and-ToDo.md
