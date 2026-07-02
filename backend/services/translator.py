@@ -285,8 +285,6 @@ class NativeLlamaService:
             "temperature": 0.1,
             "grammar": grammar
         }
-        if getattr(self, "disable_reasoning", True):
-            kwargs["chat_template_kwargs"] = {"enable_thinking": False}
 
         output = self.model.create_chat_completion(**kwargs)
         
@@ -367,8 +365,6 @@ class NativeLlamaService:
             "temperature": 0.1,
             "grammar": grammar
         }
-        if getattr(self, "disable_reasoning", True):
-            kwargs["chat_template_kwargs"] = {"enable_thinking": False}
 
         output = self.model.create_chat_completion(**kwargs)
         
