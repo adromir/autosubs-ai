@@ -92,6 +92,19 @@ When no subtitles exist, create your own with industry-leading accuracy:
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/assets/login.png" width="48%">
+  <img src="docs/assets/dashboard.png" width="48%">
+</p>
+<p align="center">
+  <img src="docs/assets/console.png" width="48%">
+  <img src="docs/assets/settings.png" width="48%">
+</p>
+
+---
+
 ## 🛠️ Installation & Requirements
 
 AutoSubs AI is optimized for high-performance hardware. Please ensure your system meets these prerequisites:

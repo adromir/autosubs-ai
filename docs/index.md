@@ -46,3 +46,20 @@ If your target language differs from the video's language, the final subtitle is
 *   **The Media Server Admin:** Your Plex library is missing subtitles. Run the directory through AutoSubs AI; it will fetch the best web-subtitles, sync them perfectly to the audio, and save them as `.en.srt` next to the media files so Plex picks them up automatically.
 *   **The Content Creator / Editor:** You have raw podcast footage. Run the file through AutoSubs AI to generate a highly accurate base transcript using `Whisper large-v3`.
 *   **Accessibility:** Easily generate closed captions for educational videos or family recordings that have no subtitles.
+
+---
+
+## 📸 Screenshots
+
+### Login Screen
+![Login Screen](assets/login.png)
+
+### Dashboard
+![Dashboard](assets/dashboard.png)
+
+### Settings
+![Settings](assets/settings.png)
+
+### Dashboard with Console
+![Dashboard with Console](assets/console.png)
+
