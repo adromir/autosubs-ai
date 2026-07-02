@@ -32,6 +32,17 @@
 
 ---
 
+## 📖 Documentation & Wiki
+
+For in-depth explanations, configuration parameters, and our development roadmap, please visit our **[GitHub Wiki](https://github.com/adromir/autosubs-ai/wiki)**!
+
+- 📚 [Pipeline Overview & Use Cases](https://github.com/adromir/autosubs-ai/wiki/Home)
+- ⚙️ [Configuration & Parameters Guide](https://github.com/adromir/autosubs-ai/wiki/Configuration-and-Parameters)
+- 🤖 [AI Models & Engines Comparison](https://github.com/adromir/autosubs-ai/wiki/AI-Models-Comparison)
+- 🗺️ [Development Roadmap & ToDo](https://github.com/adromir/autosubs-ai/wiki/Roadmap-and-ToDo)
+
+---
+
 ## 🤔 What is it & Why use it?
 
 Finding the perfect subtitle for a video file is a notorious headache. Sometimes the subtitle is out of sync by seconds, sometimes it's machine-translated gibberish, and sometimes it simply doesn't exist. **AutoSubs AI solves this completely autonomously.**
