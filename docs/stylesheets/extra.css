@@ -17,6 +17,8 @@
   --md-text-color: #d4e4fa;
   --md-typeset-color: #d4e4fa;
   --md-typeset-a-color: #00f2ff;
+  --md-footer-bg-color: rgba(5, 20, 36, 0.7);
+  --md-footer-bg-color--dark: rgba(2, 10, 18, 0.8);
 }
 
 body[data-md-color-scheme="slate"] {
@@ -28,13 +30,13 @@ body[data-md-color-scheme="slate"] {
   color: var(--md-text-color);
 }
 
-/* Glassmorphism Header */
+/* --- Organic Header & Tabs --- */
 [data-md-color-scheme="slate"] .md-header {
-  background-color: rgba(5, 20, 36, 0.7) !important;
+  background-color: rgba(5, 20, 36, 0.6) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-bottom: none; /* Removed harsh border to merge with tabs */
+  box-shadow: none; /* Removed shadow to let tabs handle it */
 }
 
 /* Enlarge Header Logo */
@@ -48,19 +50,21 @@ body[data-md-color-scheme="slate"] {
   margin-right: 0.5rem;
 }
 
-/* Glassmorphism Tabs */
+/* Tabs merge organically with the header */
 [data-md-color-scheme="slate"] .md-tabs {
-  background-color: rgba(5, 20, 36, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(5, 20, 36, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); /* Soft shadow below the combined header+tabs */
 }
 
-/* Layout Grid Enhancements */
+/* --- Layout Grid Enhancements --- */
 @media screen and (min-width: 76.25em) {
   .md-main__inner {
     max-width: 90rem;
     margin-top: 2.5rem;
+    margin-bottom: 4rem; /* Added space before footer */
     display: grid;
     grid-template-columns: 16rem auto 16rem;
     gap: 2.5rem;
@@ -71,8 +75,16 @@ body[data-md-color-scheme="slate"] {
   }
 }
 
-/* Glassmorphism Sidebar */
+/* --- Glassmorphism Sidebar --- */
+/* Move styling to scrollwrap so it fully contains the scrolling content */
 [data-md-color-scheme="slate"] .md-sidebar {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -81,14 +93,8 @@ body[data-md-color-scheme="slate"] {
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
-}
-
-[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
-  background: transparent;
-  border: none;
-  box-shadow: none;
   margin: 0;
 }
 
@@ -102,7 +108,7 @@ body[data-md-color-scheme="slate"] {
   padding-left: 0.8rem;
 }
 
-/* Glassmorphism Content Box */
+/* --- Glassmorphism Content Box --- */
 [data-md-color-scheme="slate"] .md-content {
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(16px);
@@ -116,7 +122,7 @@ body[data-md-color-scheme="slate"] {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
-/* Typography & Neon Accents */
+/* --- Typography & Neon Accents --- */
 [data-md-color-scheme="slate"] .md-typeset h1 {
   color: #e1fdff;
   text-shadow: 0 0 16px rgba(0, 242, 255, 0.4);
@@ -178,4 +184,18 @@ body[data-md-color-scheme="slate"] {
   background-color: #e1fdff;
   box-shadow: 0 0 12px rgba(0, 242, 255, 0.6);
   transform: translateY(-1px);
+}
+
+/* --- Organic Footer --- */
+[data-md-color-scheme="slate"] .md-footer {
+  background-color: rgba(5, 20, 36, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 2rem 0; /* Add generous padding */
+}
+
+/* Adjust footer text colors for contrast */
+[data-md-color-scheme="slate"] .md-footer-meta {
+  background-color: transparent;
 }
