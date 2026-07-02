@@ -63,6 +63,8 @@ function Install-Standard {
         exit 1
     }
 
+    & .\venv\Scripts\python.exe backend\configure_gpu.py
+
 
     Write-Host "`n[INFO] Installing Frontend UI Dependencies..." -ForegroundColor Cyan
     Push-Location frontend
@@ -171,6 +173,15 @@ function Reset-User {
     Read-Host "`nPress Enter to return to menu"
 }
 
+function Configure-GPU {
+    if (Test-Path "venv\Scripts\python.exe") {
+        & .\venv\Scripts\python.exe backend\configure_gpu.py
+    } else {
+        Write-Host "`n[ERROR] Virtual environment not found. Please run Standard Installation first." -ForegroundColor Red
+    }
+    Read-Host "`nPress Enter to return to menu"
+}
+
 while ($true) {
     Clear-Host
     Write-Host "==============================================" -ForegroundColor Magenta
@@ -182,7 +193,8 @@ while ($true) {
     Write-Host "[3] Reinstall Dependencies"
     Write-Host "[4] Factory Reset"
     Write-Host "[5] Reset User Credentials"
-    Write-Host "[6] Exit"
+    Write-Host "[6] Configure GPU Selection"
+    Write-Host "[7] Exit"
     Write-Host ""
     
     $choice = Read-Host "Select an option"
@@ -193,7 +205,8 @@ while ($true) {
         "3" { Reinstall-Deps }
         "4" { Factory-Reset }
         "5" { Reset-User }
-        "6" { exit }
+        "6" { Configure-GPU }
+        "7" { exit }
         default { 
             Write-Host "Invalid option. Please try again." -ForegroundColor Yellow
             Start-Sleep -Seconds 1

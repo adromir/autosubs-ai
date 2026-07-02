@@ -68,10 +68,15 @@ install_standard() {
     ./venv/bin/python backend/set_credentials.py "$AUTH_USERNAME" "$AUTH_PASSWORD"
     if [ $? -ne 0 ]; then
         echo -e "\033[1;31m[ERROR] Failed to save credentials to .env\033[0m"
-        read -p "Press Enter to return to menu"
-        return
+        read -p "Press Enter to exit"
+        exit 1
     fi
 
+    if [ -f "venv/bin/python" ]; then
+        ./venv/bin/python backend/configure_gpu.py
+    else
+        python3 backend/configure_gpu.py
+    fi
 
     echo -e "\n\033[1;36m[INFO] Installing Frontend UI Dependencies...\033[0m"
     cd frontend
@@ -157,6 +162,15 @@ reset_user() {
     read -p "Press Enter to return to menu"
 }
 
+configure_gpu() {
+    if [ -f "venv/bin/python" ]; then
+        ./venv/bin/python backend/configure_gpu.py
+    else
+        echo -e "\n\033[1;31m[ERROR] Virtual environment not found. Please run Standard Installation first.\033[0m"
+    fi
+    read -p "Press Enter to return to menu"
+}
+
 while true; do
     clear
     echo -e "\033[1;35m==============================================\033[0m"
@@ -168,7 +182,8 @@ while true; do
     echo "[3] Reinstall Dependencies"
     echo "[4] Factory Reset"
     echo "[5] Reset User Credentials"
-    echo "[6] Exit"
+    echo "[6] Configure GPU Selection"
+    echo "[7] Exit"
     echo ""
     
     read -p "Select an option: " choice
@@ -179,7 +194,8 @@ while true; do
         3) reinstall_deps ;;
         4) factory_reset ;;
         5) reset_user ;;
-        6) exit 0 ;;
+        6) configure_gpu ;;
+        7) exit 0 ;;
         *) 
             echo -e "\033[1;33mInvalid option. Please try again.\033[0m"
             sleep 1
