@@ -13,6 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare Wiki Files
+        run: |
+          mkdir -p .wiki_stage
+          cp -r docs/* .wiki_stage/
+          if [ -f .wiki_stage/index.md ]; then
+            mv .wiki_stage/index.md .wiki_stage/Home.md
+          fi
       - uses: spenserblack/actions-wiki@v0.3.0
         with:
-          path: docs
+          path: .wiki_stage
