@@ -10,11 +10,11 @@ RUN npm run build
 FROM pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime AS backend
 WORKDIR /app
 USER root
-RUN apt-get update && apt-get install -y ffmpeg gcc git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg gcc g++ git && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and satisfy the resolver with WhisperX metadata surgery
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
 
 # [Surgery] Relax WhisperX version pins to avoid torch downgrade
 RUN python3 -c "import pathlib, re; \

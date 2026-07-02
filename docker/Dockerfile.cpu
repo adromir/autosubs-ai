@@ -10,7 +10,7 @@ RUN npm run build
 FROM python:3.10-slim AS backend
 WORKDIR /app
 USER root
-RUN apt-get update && apt-get install -y ffmpeg gcc git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg gcc g++ git && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and satisfy the resolver with WhisperX metadata surgery
 COPY backend/requirements.txt ./backend/
