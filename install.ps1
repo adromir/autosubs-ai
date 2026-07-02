@@ -161,6 +161,16 @@ function Factory-Reset {
     }
 }
 
+function Reset-User {
+    Write-Host "`n[INFO] Resetting User Credentials..." -ForegroundColor Cyan
+    if (Test-Path "venv\Scripts\python.exe") {
+        & .\venv\Scripts\python.exe reset_user.py
+    } else {
+        python reset_user.py
+    }
+    Read-Host "`nPress Enter to return to menu"
+}
+
 while ($true) {
     Clear-Host
     Write-Host "==============================================" -ForegroundColor Magenta
@@ -171,7 +181,8 @@ while ($true) {
     Write-Host "[2] Update Repository (git pull)"
     Write-Host "[3] Reinstall Dependencies"
     Write-Host "[4] Factory Reset"
-    Write-Host "[5] Exit"
+    Write-Host "[5] Reset User Credentials"
+    Write-Host "[6] Exit"
     Write-Host ""
     
     $choice = Read-Host "Select an option"
@@ -181,7 +192,8 @@ while ($true) {
         "2" { Update-Repo }
         "3" { Reinstall-Deps }
         "4" { Factory-Reset }
-        "5" { exit }
+        "5" { Reset-User }
+        "6" { exit }
         default { 
             Write-Host "Invalid option. Please try again." -ForegroundColor Yellow
             Start-Sleep -Seconds 1

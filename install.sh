@@ -147,6 +147,16 @@ factory_reset() {
     fi
 }
 
+reset_user() {
+    echo -e "\n\033[1;36m[INFO] Resetting User Credentials...\033[0m"
+    if [ -f "venv/bin/python" ]; then
+        ./venv/bin/python reset_user.py
+    else
+        python3 reset_user.py
+    fi
+    read -p "Press Enter to return to menu"
+}
+
 while true; do
     clear
     echo -e "\033[1;35m==============================================\033[0m"
@@ -157,7 +167,8 @@ while true; do
     echo "[2] Update Repository (git pull)"
     echo "[3] Reinstall Dependencies"
     echo "[4] Factory Reset"
-    echo "[5] Exit"
+    echo "[5] Reset User Credentials"
+    echo "[6] Exit"
     echo ""
     
     read -p "Select an option: " choice
@@ -167,7 +178,8 @@ while true; do
         2) update_repo ;;
         3) reinstall_deps ;;
         4) factory_reset ;;
-        5) exit 0 ;;
+        5) reset_user ;;
+        6) exit 0 ;;
         *) 
             echo -e "\033[1;33mInvalid option. Please try again.\033[0m"
             sleep 1
