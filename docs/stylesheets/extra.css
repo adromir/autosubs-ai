@@ -1,0 +1,74 @@
+:root > * {
+  --md-primary-fg-color: hsl(250, 80%, 65%);
+  --md-primary-fg-color--light: hsl(250, 80%, 75%);
+  --md-primary-fg-color--dark: hsl(250, 80%, 55%);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: hsl(220, 20%, 8%);
+  --md-default-bg-color--light: rgba(255, 255, 255, 0.05);
+  --md-default-bg-color--lighter: rgba(255, 255, 255, 0.1);
+  --md-text-color: hsl(0, 0%, 95%);
+}
+
+/* Base Body Background with subtle gradients to match frontend */
+body[data-md-color-scheme="slate"] {
+  background-color: var(--md-default-bg-color);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(100, 50, 255, 0.15), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(50, 150, 255, 0.15), transparent 25%);
+  background-attachment: fixed;
+}
+
+/* Header Glassmorphism */
+[data-md-color-scheme="slate"] .md-header {
+  background-color: rgba(20, 21, 24, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Sidebar Glassmorphism */
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-top: 10px;
+  padding: 10px;
+}
+
+/* Tabs Glassmorphism */
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: rgba(20, 21, 24, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Content Panel styling */
+[data-md-color-scheme="slate"] .md-content {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Code block matching */
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}

@@ -5,6 +5,8 @@ repo_name: adromir/autosubs-ai
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
   features:
     - navigation.tabs
     - navigation.sections
@@ -17,6 +19,9 @@ theme:
     - scheme: slate
       primary: indigo
       accent: indigo
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search
