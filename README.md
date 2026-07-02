@@ -9,7 +9,9 @@
     <img src="https://img.shields.io/badge/Creator-Adromir-blueviolet?style=for-the-badge&logo=github" alt="Creator Adromir">
   </a>
   <img src="https://img.shields.io/badge/Status-WIP-orange?style=for-the-badge" alt="Status">
-  <img src="https://img.shields.io/badge/Version-0.0.1--alpha-blue?style=for-the-badge" alt="Version">
+  <a href="https://github.com/adromir/autosubs-ai/releases">
+    <img src="https://img.shields.io/github/v/release/adromir/autosubs-ai?include_prereleases&style=for-the-badge" alt="Latest Release">
+  </a>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
 </p>
 
