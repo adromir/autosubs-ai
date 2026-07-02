@@ -1,5 +1,7 @@
 # Welcome to the AutoSubs AI Wiki
 
+![Dashboard](assets/dashboard.png)
+
 AutoSubs AI is an intelligent, hardware-accelerated subtitle orchestration pipeline designed to solve every subtitle problem autonomously. This Wiki serves as the definitive guide to understanding what it does, how to use it, and how to fine-tune its capabilities.
 
 ## What Can It Do?
@@ -27,6 +29,8 @@ If no subtitles exist in the file or on the internet, the AI takes over.
 - It generates a perfectly timed `.srt` file from scratch, recognizing speech, punctuation, and speaker cadence.
 - **Why it matters:** This guarantees that *every* video you process will end up with a subtitle, regardless of how obscure the media is.
 
+![Console Output](assets/console.png)
+
 #### 4. ⏱️ Synchronization
 Sometimes internet-fetched subtitles are out of sync by a few seconds (e.g., due to different video release versions like Web-DL vs BluRay).
 - The fetched subtitle and the video's audio track are analyzed together using **FFsubsync** and Voice Activity Detection (VAD).
@@ -46,20 +50,4 @@ If your target language differs from the video's language, the final subtitle is
 *   **The Media Server Admin:** Your Plex library is missing subtitles. Run the directory through AutoSubs AI; it will fetch the best web-subtitles, sync them perfectly to the audio, and save them as `.en.srt` next to the media files so Plex picks them up automatically.
 *   **The Content Creator / Editor:** You have raw podcast footage. Run the file through AutoSubs AI to generate a highly accurate base transcript using `Whisper large-v3`.
 *   **Accessibility:** Easily generate closed captions for educational videos or family recordings that have no subtitles.
-
----
-
-## 📸 Screenshots
-
-### Login Screen
-![Login Screen](assets/login.png)
-
-### Dashboard
-![Dashboard](assets/dashboard.png)
-
-### Settings
-![Settings](assets/settings.png)
-
-### Dashboard with Console
-![Dashboard with Console](assets/console.png)
 

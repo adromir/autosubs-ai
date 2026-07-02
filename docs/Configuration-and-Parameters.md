@@ -2,6 +2,8 @@
 
 AutoSubs AI provides a highly customizable Web GUI. You can tailor exactly how the pipeline operates by adjusting parameters in the **Settings** menu and your **Job Profiles**.
 
+![Settings Menu](assets/settings.png)
+
 ## Global Settings Overview
 
 ### Hardware Providers (`Hardware` tab)

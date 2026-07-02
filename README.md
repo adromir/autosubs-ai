@@ -46,6 +46,10 @@ For in-depth explanations, configuration parameters, and our development roadmap
 
 ## 🤔 What is it & Why use it?
 
+<p align="center">
+  <img src="docs/assets/dashboard.png" width="90%">
+</p>
+
 Finding the perfect subtitle for a video file is a notorious headache. Sometimes the subtitle is out of sync by seconds, sometimes it's machine-translated gibberish, and sometimes it simply doesn't exist. **AutoSubs AI solves this completely autonomously.**
 
 **Who is this for?**
@@ -61,6 +65,11 @@ With a fully automated job queue, you just drag and drop a folder of movies, pic
 ## 🚀 Key Features
 
 ### 🔒 Secure & Private
+
+<p align="center">
+  <img src="docs/assets/login.png" width="60%">
+</p>
+
 - **Zero Cloud Dependence**: Everything runs locally on your hardware. Your files and transcripts never leave your machine.
 - **Built-in Security**: Hardened with Token-based Bearer Authentication and a fully secured Login UI, allowing safe deployments on local networks.
 
@@ -90,17 +99,8 @@ When no subtitles exist, create your own with industry-leading accuracy:
 *   **Whisper Engines**: Full support for `Faster-Whisper` and `WhisperX` (the gold standards of transcription).
 *   **SRT Sanitization**: Every subtitle is automatically normalized to `UTF-8` with Unix line endings (`\n`) to ensure 100% downstream stability.
 
----
-
-## 📸 Screenshots
-
 <p align="center">
-  <img src="docs/assets/login.png" width="48%">
-  <img src="docs/assets/dashboard.png" width="48%">
-</p>
-<p align="center">
-  <img src="docs/assets/console.png" width="48%">
-  <img src="docs/assets/settings.png" width="48%">
+  <img src="docs/assets/console.png" width="90%">
 </p>
 
 ---
@@ -159,6 +159,10 @@ docker compose --profile cuda up -d --build
 ---
 
 ## 💡 Recommendations & Settings
+
+<p align="center">
+  <img src="docs/assets/settings.png" width="90%">
+</p>
 
 For the best experience, we recommend the following model choices based on your hardware:
 
