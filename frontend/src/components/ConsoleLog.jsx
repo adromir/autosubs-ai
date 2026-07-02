@@ -8,7 +8,8 @@ export function ConsoleLog({ isOpen, setIsOpen }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    const eventSource = new EventSource('/api/console/stream');
+    const token = localStorage.getItem('api_token') || '';
+    const eventSource = new EventSource(`/api/console/stream?token=${encodeURIComponent(token)}`);
     
     eventSource.onmessage = (event) => {
       // Decode the \n safe wrappers
