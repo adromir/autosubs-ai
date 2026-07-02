@@ -9,15 +9,11 @@ RUN npm run build
 FROM pytorch/pytorch:2.9.1-cuda13.0-cudnn9-runtime AS backend
 WORKDIR /app
 USER root
-# Install Python 3.12, pip, and build tools
-RUN apt-get update && apt-get install -y ffmpeg gcc g++ git python3.12 python3.12-venv python3-pip && rm -rf /var/lib/apt/lists/*
-
-# Set Python 3.12 as default
-RUN ln -sf /usr/bin/python3.12 /usr/bin/python3 && ln -sf /usr/bin/python3.12 /usr/bin/python
+RUN apt-get update && apt-get install -y ffmpeg gcc g++ git && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and satisfy the resolver with WhisperX metadata surgery
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130 --break-system-packages
+RUN pip install --no-cache-dir -r backend/requirements.txt --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu130
 
 # [Surgery] Relax WhisperX version pins to avoid torch downgrade
 RUN python3 -c "import pathlib, re, sysconfig; \
