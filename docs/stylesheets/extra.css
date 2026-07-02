@@ -27,6 +27,8 @@ body[data-md-color-scheme="slate"] {
     radial-gradient(circle at 10% 40%, rgba(0, 242, 255, 0.08), transparent 40%),
     radial-gradient(circle at 90% 60%, rgba(138, 43, 226, 0.08), transparent 40%);
   background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: 100vw 100vh;
   color: var(--md-text-color);
 }
 
@@ -85,6 +87,13 @@ body[data-md-color-scheme="slate"] {
 }
 
 [data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+}
+
+[data-md-color-scheme="slate"] .md-sidebar__inner {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -95,7 +104,7 @@ body[data-md-color-scheme="slate"] {
   border-radius: 12px;
   padding: 1rem;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
-  margin: 0;
+  margin-top: 1rem; /* Prevent touching the top edge of the scrollwrap */
 }
 
 /* Sidebar Active Nav Item */
