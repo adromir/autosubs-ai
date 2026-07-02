@@ -141,6 +141,7 @@ export function ConfigPanel({ onProcess, disabled }) {
   const [useNfo, setUseNfo] = useState(false);
   const [autoSync, setAutoSync] = useState(false);
   const [autoJanitor, setAutoJanitor] = useState(true);
+  const [disableReasoning, setDisableReasoning] = useState(true);
   const [fetchAllAvailable, setFetchAllAvailable] = useState(false);
   const [isProfileDefault, setIsProfileDefault] = useState(false);
   const [localLlamaModels, setLocalLlamaModels] = useState([]);
@@ -194,6 +195,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       useNfo !== (p.use_nfo ?? false),
       autoSync !== (p.auto_sync ?? false),
       autoJanitor !== (p.auto_janitor ?? true),
+      disableReasoning !== (p.disable_reasoning ?? true),
       fallbackToTargets !== (p.fallback_to_targets ?? false),
       fetchAllAvailable !== (p.fetch_all_available ?? false),
       llmModelPath !== (p.llm_model_path || '')
@@ -244,6 +246,7 @@ export function ConfigPanel({ onProcess, disabled }) {
     setUseNfo(p.use_nfo || false);
     setAutoSync(p.auto_sync || false);
     setAutoJanitor(p.auto_janitor ?? true);
+    setDisableReasoning(p.disable_reasoning ?? true);
     setFetchAllAvailable(p.fetch_all_available || false);
     setIsProfileDefault(p.is_default || false);
     

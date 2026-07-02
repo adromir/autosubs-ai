@@ -200,6 +200,7 @@ class NativeLlamaService:
             self.n_ctx = params.get("n_ctx", 4096)
             n_batch = params.get("n_batch", 2048)
             flash_attn = params.get("flash_attn", True)
+            self.disable_reasoning = params.get("disable_reasoning", True)
             
             from llama_cpp import Llama
             # For AMD 9060XT, n_gpu_layers=99 sends everything to the GPU (if compiled with HIP/ROCm)
@@ -265,15 +266,23 @@ class NativeLlamaService:
         """
         grammar = LlamaGrammar.from_string(json_grammar)
 
-        output = self.model.create_chat_completion(
-            messages=messages,
-            max_tokens=self.n_ctx,
-            temperature=0.1,
-            grammar=grammar
-        )
+        kwargs = {
+            "messages": messages,
+            "max_tokens": self.n_ctx,
+            "temperature": 0.1,
+            "grammar": grammar
+        }
+        if getattr(self, "disable_reasoning", True):
+            kwargs["chat_template_kwargs"] = {"enable_thinking": False}
+
+        output = self.model.create_chat_completion(**kwargs)
         
         # Raw response from the assistant
         raw_response = output["choices"][0]["message"]["content"].strip()
+        
+        if getattr(self, "disable_reasoning", True):
+            import re
+            raw_response = re.sub(r'<think>.*?</think>', '', raw_response, flags=re.DOTALL).strip()
         
         # Grammar ensures it starts with [ and ends with ] and is valid.
         # But we still do our newline fix just in case the LLM used literal \N instead of escaped \\N
@@ -314,10 +323,79 @@ class NativeLlamaService:
                 
         return final_translations
 
+    def clean_batch(self, texts: List[str]) -> List[str]:
+        if not self.model:
+            raise RuntimeError("Llama model not loaded")
+
+        numbered_input = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
+        system_instruction = (
+            "You are an AI subtitle cleaner. Your task is to remove spam, ads, and credits from subtitles.\n"
+            "If a line is purely an ad or credit, replace it with an empty string.\n"
+            "Otherwise, return the line exactly as is.\n"
+            "Respond ONLY with a valid JSON array of strings, keeping the exact same order and number of lines.\n"
+            "Example: [\"hello\", \"\", \"world\"]."
+        )
+        
+        messages = [
+            {"role": "user", "content": f"{system_instruction}\n\nLines to clean:\n{numbered_input}"}
+        ]
+        
+        from llama_cpp import LlamaGrammar
+        json_grammar = r"""
+        root   ::= "[" space (string (space "," space string)*)? space "]"
+        string ::= "\"" ([^"\\\n] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]))* "\""
+        space  ::= [ \t\n\r]*
+        """
+        grammar = LlamaGrammar.from_string(json_grammar)
+
+        kwargs = {
+            "messages": messages,
+            "max_tokens": self.n_ctx,
+            "temperature": 0.1,
+            "grammar": grammar
+        }
+        if getattr(self, "disable_reasoning", True):
+            kwargs["chat_template_kwargs"] = {"enable_thinking": False}
+
+        output = self.model.create_chat_completion(**kwargs)
+        
+        raw_response = output["choices"][0]["message"]["content"].strip()
+        
+        if getattr(self, "disable_reasoning", True):
+            import re
+            raw_response = re.sub(r'<think>.*?</think>', '', raw_response, flags=re.DOTALL).strip()
+            
+        fixed_response = raw_response.strip()
+        if fixed_response.startswith('```json'):
+            fixed_response = fixed_response[7:].strip()
+        if fixed_response.endswith('```'):
+            fixed_response = fixed_response[:-3].strip()
+
+        try:
+            cleaned = json.loads(fixed_response)
+            if not isinstance(cleaned, list):
+                cleaned = []
+        except Exception as e:
+            print(f"[Native Llama] JSON Parse Error in clean_batch: {e}")
+            import re
+            matches = re.finditer(r'"((?:[^"\\]|\\.)*)"', raw_response)
+            cleaned = [m.group(1) for m in matches]
+            
+        final_cleaned = []
+        for i in range(len(texts)):
+            if i < len(cleaned):
+                t = str(cleaned[i])
+                t = t.replace('\\"', '"').replace('\\\\', '\\')
+                final_cleaned.append(t)
+            else:
+                final_cleaned.append(texts[i])
+                
+        return final_cleaned
+
 # Singleton instance
 llama_service = NativeLlamaService()
 
-def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None):
+def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None, disable_reasoning: bool = True):
     print(f"Translating {input_srt_path} to {target_lang} via Native Llama GGUF...")
     
     # Path resolution: If not absolute and doesn't exist, check backend/models/
@@ -369,8 +447,18 @@ def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lan
                         llama_params_json = json.dumps(llm["llama_params"])
                         print(f"[Native Llama] Found optimal parameters for {filename}: {llama_params_json}")
                         break
+            # Convert json back to dict to inject disable_reasoning, then back to json
+            try:
+                params_dict = json.loads(llama_params_json)
+                params_dict["disable_reasoning"] = disable_reasoning
+                llama_params_json = json.dumps(params_dict)
+            except Exception:
+                llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
+        else:
+            llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
     except Exception as e:
         print(f"[Native Llama] Warning: Could not read available_models.json: {e}")
+        llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
 
     script_path = os.path.join(os.path.dirname(__file__), "_llama_subprocess.py")
     

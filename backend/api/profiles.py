@@ -38,6 +38,7 @@ class ProfileData(BaseModel):
     enable_transcription: bool = True
     emby_naming: bool = False
     auto_janitor: bool = True
+    disable_reasoning: bool = True
 
 class RenameRequest(BaseModel):
     old_name: str
