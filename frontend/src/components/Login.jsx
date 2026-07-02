@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, User, Lock } from 'lucide-react';
 
 export function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -45,7 +45,7 @@ export function Login({ onLoginSuccess }) {
     }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <img src="/logo.png" alt="AutoSubs AI Logo" style={{ width: '80px', height: '80px', marginBottom: '1rem' }} />
+          <img src="/logo.png" alt="AutoSubs AI Logo" style={{ width: '80px', height: '80px', marginBottom: '1rem', borderRadius: '50%', objectFit: 'cover' }} />
           <h1 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>AutoSubs AI</h1>
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>Sign in to manage your subtitle pipelines</p>
         </div>
@@ -70,24 +70,32 @@ export function Login({ onLoginSuccess }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                required
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-main)' }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
           </div>
 
           <button
