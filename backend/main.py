@@ -1,7 +1,8 @@
 import os
 import sys
 from dotenv import load_dotenv
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+load_dotenv(env_path)
 
 # --- OFFLINE-FIRST & LOG HARDENING ---
 import logging
