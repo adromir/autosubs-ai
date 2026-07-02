@@ -20,7 +20,7 @@
 > Only the **ROCm (AMD GPU)** workflow on Windows has been tested so far. Other environments (CUDA, Linux) are currently under development and may be unstable.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/AMD_ROCm-7.1-orange?style=for-the-badge&logo=amd" alt="AMD ROCm 7.1">
+  <img src="https://img.shields.io/badge/AMD_ROCm-7.2-crimson?style=for-the-badge&logo=amd" alt="AMD ROCm 7.2">
   <img src="https://img.shields.io/badge/NVIDIA_CUDA-13.0-green?style=for-the-badge&logo=nvidia" alt="NVIDIA CUDA 13.0">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
