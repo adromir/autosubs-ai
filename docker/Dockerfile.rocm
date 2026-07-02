@@ -6,7 +6,7 @@ RUN npm install
 COPY frontend/ .
 RUN npm run build
 
-FROM rocm/pytorch:rocm7.2.4_ubuntu22.04_py3.10_pytorch_release_2.9.1 AS backend
+FROM rocm/pytorch:rocm7.2.4_ubuntu24.04_py3.12_pytorch_release_2.9.1 AS backend
 WORKDIR /app
 USER root
 RUN apt-get update && apt-get install -y ffmpeg gcc g++ git && rm -rf /var/lib/apt/lists/*
@@ -16,8 +16,9 @@ COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # [Surgery] Relax WhisperX version pins to avoid torch downgrade
-RUN python3 -c "import pathlib, re; \
-    dist_info = next(pathlib.Path('/opt/conda/lib/python3.10/site-packages').glob('whisperx-*.dist-info'), None); \
+RUN python3 -c "import pathlib, re, sysconfig; \
+    site_packages = pathlib.Path(sysconfig.get_path('purelib')); \
+    dist_info = next(site_packages.glob('whisperx-*.dist-info'), None); \
     if dist_info: \
         metadata = dist_info / 'METADATA'; \
         text = metadata.read_text(); \
