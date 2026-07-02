@@ -11,7 +11,7 @@
   --md-text-color: hsl(0, 0%, 95%);
 }
 
-/* Base Body Background with subtle gradients to match frontend */
+/* Base Body Background with subtle gradients */
 body[data-md-color-scheme="slate"] {
   background-color: var(--md-default-bg-color);
   background-image: 
@@ -29,22 +29,15 @@ body[data-md-color-scheme="slate"] {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
-/* Sidebar Glassmorphism */
-[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  margin-top: 0;
-  /* Removed extra padding so active menu items span full width gracefully */
+/* Enlarge Header Logo */
+.md-header__button.md-logo img, 
+.md-header__button.md-logo svg {
+  width: auto;
+  height: 3.5rem !important; /* Made significantly larger as requested */
 }
-
-/* Sidebar Active Menu Item Overrides to look better with glassmorphism */
-[data-md-color-scheme="slate"] .md-nav__item--active > .md-nav__link {
-  background: rgba(100, 50, 255, 0.2);
-  border-radius: 8px;
-  margin: 4px;
+.md-header__button.md-logo {
+  padding: 0;
+  margin-right: 0.5rem;
 }
 
 /* Tabs Glassmorphism */
@@ -55,6 +48,51 @@ body[data-md-color-scheme="slate"] {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* --- Container Alignment & Spacing --- */
+
+/* The main layout grid in Material */
+@media screen and (min-width: 76.25em) {
+  .md-main__inner {
+    max-width: 90rem; /* Give it more breathing room */
+    margin-top: 2.5rem; /* Top margin to separate from header */
+    display: grid;
+    grid-template-columns: 16rem auto 16rem; /* Explicit grid to fix layout */
+    gap: 2.5rem; /* Explicit gap between the containers */
+    align-items: start; /* Ensure everything aligns perfectly at the top! */
+  }
+  
+  /* Reset default MkDocs margins so our grid works perfectly */
+  .md-sidebar--primary, .md-sidebar--secondary, .md-content {
+    margin: 0 !important;
+  }
+}
+
+/* Sidebar Glassmorphism */
+[data-md-color-scheme="slate"] .md-sidebar {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Remove default scrollwrap styling to fit inside our beautifully styled sidebar */
+[data-md-color-scheme="slate"] .md-sidebar__scrollwrap {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+}
+
+/* Sidebar Active Menu Item Overrides */
+[data-md-color-scheme="slate"] .md-nav__item--active > .md-nav__link {
+  background: rgba(100, 50, 255, 0.2);
+  border-radius: 8px;
+  margin: 4px;
+}
+
 /* Content Panel styling */
 [data-md-color-scheme="slate"] .md-content {
   background: rgba(255, 255, 255, 0.02);
@@ -62,9 +100,22 @@ body[data-md-color-scheme="slate"] {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
-  padding: 2rem;
-  margin-top: 0;
+  padding: 2.5rem; /* Increased padding */
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* --- In-page Navigation Fixes --- */
+/* The top menu item is often an unclickable title or looks weird */
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__title {
+  font-weight: 700;
+  color: var(--md-primary-fg-color);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem; /* More margin */
+  text-align: center;
+  box-shadow: none;
+  border: 1px solid rgba(100, 50, 255, 0.2); /* Highlight it slightly */
 }
 
 /* Code block matching */
@@ -78,14 +129,4 @@ body[data-md-color-scheme="slate"] {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   overflow: hidden;
-}
-
-/* Enlarge Header Logo */
-.md-header__button.md-logo img, 
-.md-header__button.md-logo svg {
-  width: auto;
-  height: 2.2rem;
-}
-.md-header__button.md-logo {
-  padding: 0.2rem;
 }
