@@ -18,16 +18,9 @@ RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # [Surgery] Relax WhisperX version pins to avoid torch downgrade
-RUN python3 -c "import pathlib, re, sysconfig; \
-    site_packages = pathlib.Path(sysconfig.get_path('purelib')); \
-    dist_info = next(site_packages.glob('whisperx-*.dist-info'), None); \
-    if dist_info: \
-        metadata = dist_info / 'METADATA'; \
-        text = metadata.read_text(); \
-        text = re.sub(r'Requires-Dist: torch \(~=2\.8\.0\)', 'Requires-Dist: torch (>=2.8.0)', text); \
-        text = re.sub(r'Requires-Dist: torchaudio \(~=2\.8\.0\)', 'Requires-Dist: torchaudio (>=2.8.0)', text); \
-        metadata.write_text(text); \
-        print('WhisperX metadata patched.')"
+RUN python3 -c 'import pathlib, re, sysconfig; \
+metadata = next(pathlib.Path(sysconfig.get_path("purelib")).glob("whisperx-*.dist-info/METADATA"), None); \
+[metadata.write_text(re.sub(r"Requires-Dist: torchaudio \(~=2\.8\.0\)", "Requires-Dist: torchaudio (>=2.8.0)", re.sub(r"Requires-Dist: torch \(~=2\.8\.0\)", "Requires-Dist: torch (>=2.8.0)", metadata.read_text(encoding="utf-8"))), encoding="utf-8") for _ in [1] if metadata]'
 
 COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
