@@ -201,6 +201,7 @@ class NativeLlamaService:
             n_batch = params.get("n_batch", 2048)
             flash_attn = params.get("flash_attn", True)
             self.disable_reasoning = params.get("disable_reasoning", True)
+            self.supports_reasoning_disable = params.get("supports_reasoning_disable", False)
             spec_draft_n_max = params.get("spec_draft_n_max", 0)
             
             from llama_cpp import Llama
@@ -286,6 +287,15 @@ class NativeLlamaService:
             "grammar": grammar
         }
 
+        if getattr(self, "disable_reasoning", True) and getattr(self, "supports_reasoning_disable", False):
+            try:
+                import inspect
+                sig = inspect.signature(self.model.create_chat_completion)
+                if "chat_template_kwargs" in sig.parameters:
+                    kwargs["chat_template_kwargs"] = {"enable_thinking": False}
+            except Exception:
+                pass
+
         output = self.model.create_chat_completion(**kwargs)
         
         # Raw response from the assistant
@@ -365,6 +375,15 @@ class NativeLlamaService:
             "temperature": 0.1,
             "grammar": grammar
         }
+
+        if getattr(self, "disable_reasoning", True) and getattr(self, "supports_reasoning_disable", False):
+            try:
+                import inspect
+                sig = inspect.signature(self.model.create_chat_completion)
+                if "chat_template_kwargs" in sig.parameters:
+                    kwargs["chat_template_kwargs"] = {"enable_thinking": False}
+            except Exception:
+                pass
 
         output = self.model.create_chat_completion(**kwargs)
         
