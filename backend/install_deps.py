@@ -172,7 +172,7 @@ def prompt_provider_choice(has_amd, has_nvidia, config):
     print("--- Hardware Autodetection ---")
     if has_nvidia:
         colored_print("   --> Detected NVIDIA GPU.", 10)
-        colored_print("       Recommended: [2] CUDA 12.1  (Faster-Whisper, WhisperX, Transformers)", 14)
+        colored_print("       Recommended: [2] CUDA 13.0  (Faster-Whisper, WhisperX, Transformers)", 14)
     elif has_amd:
         if opt_sys == "Linux":
             colored_print("   --> Detected AMD GPU on Linux.", 10)
@@ -188,7 +188,7 @@ def prompt_provider_choice(has_amd, has_nvidia, config):
 
     print("Select your execution provider:")
     print("  [1]  AMD ROCm (Windows/Linux) - Full support: Faster-Whisper, WhisperX, Transformers")
-    print("  [2]  NVIDIA CUDA 12.1         - Modern NVIDIA GPUs (all engines)")
+    print("  [2]  NVIDIA CUDA 13.0         - Modern NVIDIA GPUs (all engines)")
     print("  [3]  NVIDIA CUDA 11.8         - Older NVIDIA GPUs (all engines)")
     print("  [4]  CPU Only                 - No GPU, universal fallback")
     print()
@@ -478,11 +478,11 @@ def install():
                 subprocess.check_call([pip_exe, "-m", "pip", "install", "ctranslate2"])
 
     elif choice == "2":
-        colored_print("\n>>> Installing PyTorch for CUDA 12.1...", 10)
+        colored_print("\n>>> Installing PyTorch for CUDA 13.0...", 10)
         subprocess.check_call([
             pip_exe, "-m", "pip", "install",
             "torch", "torchaudio",
-            "--index-url", "https://download.pytorch.org/whl/cu121"
+            "--index-url", "https://download.pytorch.org/whl/cu130"
         ])
     elif choice == "3":
         colored_print("\n>>> Installing PyTorch for CUDA 11.8...", 10)

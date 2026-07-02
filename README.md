@@ -21,7 +21,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/AMD_ROCm-7.1-orange?style=for-the-badge&logo=amd" alt="AMD ROCm 7.1">
-  <img src="https://img.shields.io/badge/NVIDIA_CUDA-12.1-green?style=for-the-badge&logo=nvidia" alt="NVIDIA CUDA 12.1">
+  <img src="https://img.shields.io/badge/NVIDIA_CUDA-13.0-green?style=for-the-badge&logo=nvidia" alt="NVIDIA CUDA 13.0">
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
 </p>
@@ -102,7 +102,7 @@ AutoSubs AI is optimized for high-performance hardware. Please ensure your syste
 | :--- | :--- | :--- |
 | **AMD GPU** | **Windows** | **[AMD ROCm 7.1 SDK (HIP SDK)](https://www.amd.com/en/developer/rocm-hub/hip-sdk.html)**<br>**[Visual Studio 2022 C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)** |
 | **AMD GPU** | **Linux** | **ROCm 7.1+ Drivers** (`amdgpu-install`) |
-| **NVIDIA GPU** | **Any** | **NVIDIA Drivers (535+)**, **[CUDA Toolkit 12.1](https://developer.nvidia.com/cuda-12-1-0-download-archive)** |
+| **NVIDIA GPU** | **Any** | **NVIDIA Drivers (535+)**, **[CUDA Toolkit 13.0](https://developer.nvidia.com/cuda-13-0-0-download-archive)** |
 | **General** | **Any** | **Python 3.10+**, **FFmpeg** |
 
 > [!IMPORTANT]
