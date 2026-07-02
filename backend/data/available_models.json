@@ -24,7 +24,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -37,7 +38,8 @@
       "llama_params": {
         "n_ctx": 32768,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -50,7 +52,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -63,7 +66,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -76,7 +80,8 @@
       "llama_params": {
         "n_ctx": 32768,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -89,7 +94,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -102,7 +108,8 @@
       "llama_params": {
         "n_ctx": 32768,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -115,7 +122,8 @@
       "llama_params": {
         "n_ctx": 32768,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -128,7 +136,8 @@
       "llama_params": {
         "n_ctx": 16384,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -141,7 +150,8 @@
       "llama_params": {
         "n_ctx": 4096,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -154,7 +164,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -167,7 +178,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -180,7 +192,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     },
     {
@@ -193,7 +206,8 @@
       "llama_params": {
         "n_ctx": 8192,
         "n_batch": 2048,
-        "flash_attn": true
+        "flash_attn": true,
+        "supports_reasoning_disable": true
       }
     }
   ]
