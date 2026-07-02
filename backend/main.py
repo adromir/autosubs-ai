@@ -23,6 +23,12 @@ hf_token = os.getenv("HF_TOKEN")
 os.environ.pop("HF_HUB_OFFLINE", None)
 os.environ.pop("HF_HUB_ENABLE_HF_TRANSFER", None)
 
+# Prevent ROCm/CUDA from trying to run on iGPUs (Device 1) if the user has a dual-GPU setup (e.g. Ryzen 9000 CPU + Dedicated GPU)
+if "HIP_VISIBLE_DEVICES" not in os.environ:
+    os.environ["HIP_VISIBLE_DEVICES"] = "0"
+if "CUDA_VISIBLE_DEVICES" not in os.environ:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 if hf_token:
     try:
         # Re-set environment variables explicitly to ensure priority over stale system vars
