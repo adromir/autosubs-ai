@@ -261,6 +261,12 @@ export function Settings() {
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const showSaved = (msg) => { setSavedMessage(msg); setTimeout(() => setSavedMessage(''), 3000); };
+  
+  const handleCopyToken = () => {
+    navigator.clipboard.writeText(apiToken);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
+  };
 
   const handleSaveToken = async () => {
     setSavingToken(true); setTokenStatus('');
