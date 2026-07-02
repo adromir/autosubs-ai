@@ -29,3 +29,5 @@ llama-cpp-python
 ctranslate2
 faster-whisper
 whisperx
+
+hf_transfer

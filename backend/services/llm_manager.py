@@ -115,6 +115,7 @@ class LLMManager:
                 
                 env = os.environ.copy()
                 env["HF_XET_HIGH_PERFORMANCE"] = "1"
+                env["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
                 env["HF_HUB_CACHE"] = str(os.path.join(self.cache_dir, ".cache"))
                 
                 # Clean up stale locks to prevent the downloader from deadlocking
@@ -125,11 +126,13 @@ class LLMManager:
                         try: os.remove(lock_file)
                         except: pass
                 
-                hf_bin = os.path.join(os.path.dirname(sys.executable), "hf")
+                hf_bin = os.path.join(os.path.dirname(sys.executable), "huggingface-cli")
                 if os.name == "nt": hf_bin += ".exe"
                 
                 cmd = [
-                    hf_bin, "download", model["repo"], model["file"], "--local-dir", str(self.cache_dir)
+                    hf_bin, "download", model["repo"],
+                    "--local-dir", str(self.cache_dir),
+                    "--include", model["file"], "*mmproj-F16*", "mtp-*", "*UD-Q4_K_XL*"
                 ]
                 
                 process = subprocess.Popen(cmd, env=env)

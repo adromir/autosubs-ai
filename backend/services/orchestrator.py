@@ -551,7 +551,8 @@ async def process_phase_3(job):
             if engine == "native":
                 model_path = getattr(job, "llm_model_path", "")
                 disable_reasoning = getattr(job, "disable_reasoning", True)
-                await asyncio.to_thread(native_llama_translate, base_srt, output_srt, tgt_lang, source_lang, model_path, is_cancelled, progress_callback=trans_progress, disable_reasoning=disable_reasoning)
+                spec_draft_n_max = getattr(job, "spec_draft_n_max", 0)
+                await asyncio.to_thread(native_llama_translate, base_srt, output_srt, tgt_lang, source_lang, model_path, is_cancelled, progress_callback=trans_progress, disable_reasoning=disable_reasoning, spec_draft_n_max=spec_draft_n_max)
             else:
                 await asyncio.to_thread(translate_srt, base_srt, output_srt, tgt_lang, source_lang, job.provider, is_cancelled, progress_callback=trans_progress)
             

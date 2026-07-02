@@ -201,6 +201,7 @@ class NativeLlamaService:
             n_batch = params.get("n_batch", 2048)
             flash_attn = params.get("flash_attn", True)
             self.disable_reasoning = params.get("disable_reasoning", True)
+            spec_draft_n_max = params.get("spec_draft_n_max", 0)
             
             from llama_cpp import Llama
             # For AMD 9060XT, n_gpu_layers=99 sends everything to the GPU (if compiled with HIP/ROCm)
@@ -211,19 +212,31 @@ class NativeLlamaService:
             except Exception:
                 n_threads = 4
 
-            print(f"[Native Llama] Initializing Llama instance with n_ctx={self.n_ctx}, n_batch={n_batch}, flash_attn={flash_attn}")
-            self.model = Llama(
-                model_path=model_path,
-                n_gpu_layers=99,
-                n_ctx=self.n_ctx,
-                n_batch=n_batch,
-                n_threads=n_threads,
-                logits_all=False,
-                use_mlock=False,
-                use_mmap=True,
-                flash_attn=flash_attn,
-                verbose=True
-            )
+            print(f"[Native Llama] Initializing Llama instance with n_ctx={self.n_ctx}, n_batch={n_batch}, flash_attn={flash_attn}, spec_draft_n_max={spec_draft_n_max}")
+            
+            kwargs = {
+                "model_path": model_path,
+                "n_gpu_layers": 99,
+                "n_ctx": self.n_ctx,
+                "n_batch": n_batch,
+                "n_threads": n_threads,
+                "logits_all": False,
+                "use_mlock": False,
+                "use_mmap": True,
+                "flash_attn": flash_attn,
+                "verbose": True
+            }
+            
+            # Robust MTP injection: Check if llama_cpp bindings support MTP natively yet
+            if spec_draft_n_max > 0:
+                import inspect
+                sig = inspect.signature(Llama.__init__)
+                if "spec_draft_n_max" in sig.parameters:
+                    kwargs["spec_draft_n_max"] = spec_draft_n_max
+                if "draft_n_max" in sig.parameters:
+                    kwargs["draft_n_max"] = spec_draft_n_max
+            
+            self.model = Llama(**kwargs)
             self.model_path = model_path
 
     def unload_model(self):
@@ -395,7 +408,7 @@ class NativeLlamaService:
 # Singleton instance
 llama_service = NativeLlamaService()
 
-def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None, disable_reasoning: bool = True):
+def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None, disable_reasoning: bool = True, spec_draft_n_max: int = 0):
     print(f"Translating {input_srt_path} to {target_lang} via Native Llama GGUF...")
     
     # Path resolution: If not absolute and doesn't exist, check backend/models/
@@ -451,14 +464,15 @@ def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lan
             try:
                 params_dict = json.loads(llama_params_json)
                 params_dict["disable_reasoning"] = disable_reasoning
+                params_dict["spec_draft_n_max"] = spec_draft_n_max
                 llama_params_json = json.dumps(params_dict)
             except Exception:
-                llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
+                llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
         else:
-            llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
+            llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
     except Exception as e:
         print(f"[Native Llama] Warning: Could not read available_models.json: {e}")
-        llama_params_json = json.dumps({"disable_reasoning": disable_reasoning})
+        llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
 
     script_path = os.path.join(os.path.dirname(__file__), "_llama_subprocess.py")
     

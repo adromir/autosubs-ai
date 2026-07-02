@@ -39,6 +39,7 @@ class ProfileData(BaseModel):
     emby_naming: bool = False
     auto_janitor: bool = True
     disable_reasoning: bool = True
+    spec_draft_n_max: int = 0
 
 class RenameRequest(BaseModel):
     old_name: str
