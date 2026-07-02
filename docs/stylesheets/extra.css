@@ -67,6 +67,7 @@ body[data-md-color-scheme="slate"] {
   border-radius: 8px;
   padding: 0.4rem 0.8rem;
   margin: 0.2rem;
+  border: 1px solid transparent; /* Prevent jitter by having a transparent border always */
 }
 
 [data-md-color-scheme="slate"] .md-tabs__link:hover {
@@ -125,7 +126,6 @@ body[data-md-color-scheme="slate"] {
   border-radius: 12px;
   padding: 1rem;
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
-  margin-top: 1rem; /* Prevent touching the top edge of the scrollwrap */
 }
 
 /* Sidebar Active Nav Item */
