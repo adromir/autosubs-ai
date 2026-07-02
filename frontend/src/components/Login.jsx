@@ -43,13 +43,19 @@ export function Login({ onLoginSuccess }) {
       justifyContent: 'center',
       padding: '1rem'
     }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <img src="/logo.png" alt="AutoSubs AI Logo" style={{ 
-            width: '80px', height: '80px', marginBottom: '1rem', borderRadius: '50%', objectFit: 'cover',
-            border: '2px solid var(--primary)',
-            boxShadow: '0 0 25px 5px rgba(0, 242, 255, 0.4), 0 0 50px 10px rgba(124, 102, 255, 0.2)'
-          }} />
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', position: 'relative', marginTop: '60px' }}>
+        <img src="/logo.png" alt="AutoSubs AI Logo" style={{ 
+          position: 'absolute',
+          top: '-60px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '120px', height: '120px', 
+          borderRadius: '50%', objectFit: 'cover',
+          border: '3px solid var(--primary)',
+          boxShadow: '0 0 25px 5px rgba(0, 242, 255, 0.4), 0 0 50px 10px rgba(124, 102, 255, 0.2)'
+        }} />
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem', marginTop: '70px' }}>
           <h1 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>AutoSubs AI</h1>
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>Sign in to manage your subtitle pipelines</p>
         </div>
