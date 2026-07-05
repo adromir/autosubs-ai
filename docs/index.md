@@ -40,7 +40,8 @@ Sometimes internet-fetched subtitles are out of sync by a few seconds (e.g., due
 #### 5. 🗣️ Translation (Dual-Engine AI)
 If your target language differs from the video's language, the final subtitle is translated.
 - You can choose between blazing-fast **NLLB-200** machine translation or premium context-aware **Native LLMs** (like Llama 3 or Gemma 2).
-- **Why it matters:** You can turn raw, untranslated Japanese Anime or French Cinema into perfect English subtitles automatically.
+- **Translation Memory & Glossary**: Maintain exact consistency for character names and fictional terms across entire TV shows using the custom Glossary feature. Both LLMs and NLLB will adhere strictly to your custom dictionaries.
+- **Why it matters:** You can turn raw, untranslated Japanese Anime or French Cinema into perfect English subtitles automatically, while never worrying about character names changing spelling between episodes.
 
 ---
 

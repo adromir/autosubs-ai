@@ -55,7 +55,7 @@ def clear_translation_cache():
     except:
         pass
 
-def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", provider: str = "auto", cancel_check = None, progress_callback = None):
+def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", provider: str = "auto", cancel_check = None, progress_callback = None, batch_mode: bool = True):
     global _translation_cache
     
     import torch
@@ -69,50 +69,56 @@ def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, s
     # Device detection
     device_name = "cpu"
     if provider in ["cuda", "nvidia", "rocm", "amd", "auto"] and torch.cuda.is_available():
-        device_name = "cuda:0"
+        device_name = "cuda"
 
     model_name = "facebook/nllb-200-distilled-600M"
     cache_dir = Path(__file__).parent.parent / "model_cache" / "nllb"
+    ct2_cache_dir = cache_dir / "nllb-200-distilled-600M-ct2"
     cache_dir.mkdir(parents=True, exist_ok=True)
     
     # Reload model if properties changed
     if _translation_cache["model_name"] != model_name or _translation_cache["device"] != device_name:
-        print(f"Loading Translation Model: {model_name} on {device_name} [float16, SDPA]...")
+        print(f"Loading Translation Model: {model_name} on {device_name} [CTranslate2]...")
         clear_translation_cache()
         
-        dtype = torch.float16 if "cuda" in str(device_name) or "privateuse" in str(device_name) else torch.float32
+        import ctranslate2
         
         # We use local_files_only if the model is correctly cached to prevent constant network checks
         try:
             # We already set HF_HUB_OFFLINE=1 in main.py, but we stay explicit here
             tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=str(cache_dir), local_files_only=True)
-            model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_name,
-                dtype=dtype,
-                attn_implementation="sdpa",
-                tie_word_embeddings=False,
-                cache_dir=str(cache_dir),
-                local_files_only=True
-            ).to(device_name)
         except Exception:
             # Fallback if first run or cache incomplete
-            print(f" -> Initializing or updating model weights from HuggingFace...")
+            print(f" -> Downloading Tokenizer from HuggingFace...")
             # Temporarily disable offline mode to allow download
             os.environ["HF_HUB_OFFLINE"] = "0"
             os.environ["TRANSFORMERS_OFFLINE"] = "0"
             try:
                 tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=str(cache_dir))
-                model = AutoModelForSeq2SeqLM.from_pretrained(
-                    model_name,
-                    dtype=dtype,
-                    attn_implementation="sdpa",
-                    tie_word_embeddings=False,
-                    cache_dir=str(cache_dir)
-                ).to(device_name)
             finally:
                 # Re-engage offline mode
                 os.environ["HF_HUB_OFFLINE"] = "1"
                 os.environ["TRANSFORMERS_OFFLINE"] = "1"
+                
+        if not ct2_cache_dir.exists():
+            print(f" -> Converting NLLB to CTranslate2 format (this only happens once)...")
+            os.environ["HF_HUB_OFFLINE"] = "0"
+            os.environ["TRANSFORMERS_OFFLINE"] = "0"
+            try:
+                converter = ctranslate2.converters.TransformersConverter(
+                    model_name_or_path=model_name,
+                    load_as_float16=True
+                )
+                converter.convert(output_dir=str(ct2_cache_dir), quantization="float16")
+            finally:
+                os.environ["HF_HUB_OFFLINE"] = "1"
+                os.environ["TRANSFORMERS_OFFLINE"] = "1"
+                
+        model = ctranslate2.Translator(
+            str(ct2_cache_dir),
+            device=device_name,
+            compute_type="float16" if device_name == "cuda" else "default"
+        )
         
         _translation_cache.update({
             "model_name": model_name,
@@ -134,32 +140,65 @@ def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, s
     texts = [event.text for event in subs.events]
     
     # Translate in batches
-    batch_size = 16
+    batch_size = 16 if batch_mode else 1
     translated_texts = []
     
-    # Get target language token ID
-    forced_bos_token_id = tokenizer.convert_tokens_to_ids(nllb_target)
     tokenizer.src_lang = nllb_source
+    
+    # Load Glossary
+    matched_glossary = []
+    try:
+        try:
+            from backend.api.glossary import load_glossary
+        except ImportError:
+            from api.glossary import load_glossary
+            
+        glossary_data = load_glossary()
+        for e in glossary_data:
+            if e.get("source_lang", "").lower() == source_lang.lower() and e.get("target_lang", "").lower() == target_lang.lower():
+                matched_glossary.append({"source": e.get("source_term"), "target": e.get("target_term")})
+    except Exception as e:
+        print(f"Warning: Failed to load glossary: {e}")
+    
+    import re
     
     for i in range(0, len(texts), batch_size):
         if cancel_check and cancel_check(): raise InterruptedError("Cancelled by user")
         batch = texts[i:i+batch_size]
         if not batch: continue
         
-        # Encode inputs
-        inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True, max_length=400).to(device_name)
+        # Apply Glossary PRE-PROCESSING for NLLB
+        if matched_glossary:
+            for b_idx in range(len(batch)):
+                for entry in matched_glossary:
+                    if re.search(r'\b' + re.escape(entry["source"]) + r'\b', batch[b_idx], re.IGNORECASE):
+                        batch[b_idx] = re.sub(r'\b' + re.escape(entry["source"]) + r'\b', entry["target"], batch[b_idx], flags=re.IGNORECASE)
+        
+        # Tokenize inputs for CTranslate2
+        source_tokens = []
+        for text in batch:
+            tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
+            source_tokens.append(tokens)
+            
+        # NLLB requires the target language code as the target prefix
+        target_prefix = [[nllb_target]] * len(batch)
         
         # Generate translations
-        with torch.no_grad():
-            generated_tokens = model.generate(
-                **inputs,
-                forced_bos_token_id=forced_bos_token_id,
-                max_length=400
-            )
+        results = model.translate_batch(
+            source_tokens,
+            target_prefix=target_prefix,
+            max_decoding_length=400,
+            beam_size=4
+        )
         
         # Decode results
-        batch_translations = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-        translated_texts.extend(batch_translations)
+        for res in results:
+            # Skip the target prefix token
+            target_tokens = res.hypotheses[0][1:]
+            decoded_text = tokenizer.decode(tokenizer.convert_tokens_to_ids(target_tokens))
+            # Clean up unknown tokens if any
+            decoded_text = decoded_text.replace("<unk>", "").strip()
+            translated_texts.append(decoded_text)
         
         if progress_callback and len(texts) > 0:
             current_idx = min(i + batch_size, len(texts))
@@ -170,10 +209,6 @@ def translate_srt(input_srt_path: str, output_srt_path: str, target_lang: str, s
         if i < len(translated_texts):
             event.text = translated_texts[i]
         
-    subs.save(output_srt_path)
-    print(f"Successfully translated into {nllb_target} and saved to {output_srt_path}")
-
-
     subs.save(output_srt_path)
     print(f"Successfully translated into {nllb_target} and saved to {output_srt_path}")
 
@@ -250,7 +285,7 @@ class NativeLlamaService:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-    def translate_batch(self, texts: List[str], target_lang: str, source_lang: str) -> List[str]:
+    def translate_batch(self, texts: List[str], target_lang: str, source_lang: str, glossary: List[dict] = None) -> List[str]:
         if not self.model:
             raise RuntimeError("Llama model not loaded")
 
@@ -265,6 +300,10 @@ class NativeLlamaService:
             f"Example: [\"line 1\", \"line 2\"].\n"
             f"Do NOT include conversational text, markdown blocks, or explanations."
         )
+        
+        if glossary and len(glossary) > 0:
+            glossary_lines = "\n".join([f"- '{g['source']}' -> '{g['target']}'" for g in glossary])
+            system_instruction += f"\n\nCRITICAL GLOSSARY (You MUST use these exact translations for the following terms):\n{glossary_lines}"
         
         messages = [
             {"role": "user", "content": f"{system_instruction}\n\nLines to translate:\n{numbered_input}"}
@@ -423,7 +462,7 @@ class NativeLlamaService:
 # Singleton instance
 llama_service = NativeLlamaService()
 
-def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None, disable_reasoning: bool = True, spec_draft_n_max: int = 0):
+def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lang: str, source_lang: str = "en", model_path: str = None, cancel_check = None, progress_callback = None, disable_reasoning: bool = True, spec_draft_n_max: int = 0, batch_mode: bool = True):
     print(f"Translating {input_srt_path} to {target_lang} via Native Llama GGUF...")
     
     # Path resolution: If not absolute and doesn't exist, check backend/models/
@@ -475,19 +514,32 @@ def native_llama_translate(input_srt_path: str, output_srt_path: str, target_lan
                         llama_params_json = json.dumps(llm["llama_params"])
                         print(f"[Native Llama] Found optimal parameters for {filename}: {llama_params_json}")
                         break
-            # Convert json back to dict to inject disable_reasoning, then back to json
+            # Convert json back to dict to inject disable_reasoning, then back
+            try:
+                with open(models_file, 'r') as f:
+                    models = json.load(f)
+                    for m in models.get("llm_models", []):
+                        if m.get("file") == os.path.basename(model_path):
+                            llama_params_json = json.dumps(m.get("llama_params", {}))
+                            break
+            except Exception:
+                pass
+                
+        # Inject custom runtime parameters into the JSON
+        if llama_params_json:
             try:
                 params_dict = json.loads(llama_params_json)
                 params_dict["disable_reasoning"] = disable_reasoning
                 params_dict["spec_draft_n_max"] = spec_draft_n_max
+                params_dict["batch_mode"] = batch_mode
                 llama_params_json = json.dumps(params_dict)
             except Exception:
-                llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
+                llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max, "batch_mode": batch_mode})
         else:
-            llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
+            llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max, "batch_mode": batch_mode})
     except Exception as e:
         print(f"[Native Llama] Warning: Could not read available_models.json: {e}")
-        llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max})
+        llama_params_json = json.dumps({"disable_reasoning": disable_reasoning, "spec_draft_n_max": spec_draft_n_max, "batch_mode": batch_mode})
 
     script_path = os.path.join(os.path.dirname(__file__), "_llama_subprocess.py")
     

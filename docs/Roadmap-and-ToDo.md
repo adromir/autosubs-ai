@@ -43,11 +43,11 @@ These items provide massive value to the user experience and are relatively stra
 ### 4.5. Expose Advanced Configuration Parameters
 
 * **Sensibility**: Medium. Power users might want deeper control over AI execution parameters.
-* **Complexity**: Low. Just adding fields to the Profile schema and UI, passing them down to the backend processors.
+* **Complexity**: Low. Just adding fields to the Global Settings schema and UI, passing them down to the backend processors.
 * **Subtasks**:
-  * `[ ]` Add `Beam Size` setting for Whisper inference (tradeoff between speed and accuracy).
-  * `[ ]` Add `Compute Type` toggle for fine-tuning precision (e.g. force `int8` on low VRAM GPUs, or default to `float16`).
-  * `[ ]` Add `Translation Batch Mode` vs `Sequential Mode` for native LLM translation.
+  * `[x]` Add `Beam Size` setting for Whisper inference (tradeoff between speed and accuracy).
+  * `[x]` Add `Compute Type` toggle for fine-tuning precision (e.g. force `int8` on low VRAM GPUs, or default to `float16`).
+  * `[x]` Add `Translation Batch Mode` vs `Sequential Mode` for native LLM translation.
 
 ---
 
@@ -78,9 +78,9 @@ These features push the application from "great" to "cutting-edge", introducing 
 * **Sensibility**: High. If a user processes multiple episodes of the same TV show, the AI should remember how it translated character names or fictional terms.
 * **Complexity**: Medium.
 * **Subtasks**:
-  * `[ ]` Create a local SQLite database or JSON dictionary to store high-confidence translated terms.
-  * `[ ]` Feed previous translations as a dynamic glossary into the LLM system prompt.
-  * `[ ]` Add a UI dashboard to view/edit the Translation Dictionary.
+  * `[x]` Create a local SQLite database or JSON dictionary to store high-confidence translated terms.
+  * `[x]` Feed previous translations as a dynamic glossary into the LLM system prompt.
+  * `[x]` Add a UI dashboard to view/edit the Translation Dictionary.
 
 ### 8. GPU-Accelerated Audio Extraction (New Idea)
 
@@ -89,6 +89,24 @@ These features push the application from "great" to "cutting-edge", introducing 
 * **Subtasks**:
   * `[x]` Update `orchestrator.py` to detect if Nvidia/AMD hardware encoders are available (`h264_nvenc`, `hevc_amf`).
   * `[x]` Modify the FFmpeg extraction command to utilize hardware decoding.
+
+### 8.5. Post-Processing Mode for Existing Subtitles (New Idea)
+
+* **Sensibility**: High. Users often have existing downloaded subtitles that just need AI synchronization (FFsubsync) or AI Ad-stripping (Cleaning), without running the full transcription/translation pipeline.
+* **Complexity**: Medium.
+* **Subtasks**:
+  * `[ ]` Add a standalone "Post-Processing Mode" in the UI to allow selecting `.srt` files directly alongside video files.
+  * `[ ]` Bypass the extraction and transcription phases in the Orchestrator.
+  * `[ ]` Route the existing `.srt` directly into the VAD/Synchronization and AI Cleaning services.
+
+### 8.6. Forced Subtitle Integration for Fantasy Languages (New Idea)
+
+* **Sensibility**: High. AI transcription models like Whisper ignore non-human/constructed languages (e.g., Elvish, Dothraki, Klingon). For Sci-Fi and Fantasy films, these parts of the dialogue will be lost if transcribed entirely via AI.
+* **Complexity**: High. Requires fetching forced subs and chronologically merging them into the AI-generated timeline.
+* **Subtasks**:
+  * `[ ]` Implement logic to extract embedded "forced" subtitle tracks or download forced-only SRTs from the internet prior to transcription.
+  * `[ ]` Create a `subtitle_merger.py` utility capable of injecting the forced SRT track into the newly generated Whisper SRT track.
+  * `[ ]` Resolve overlapping timestamp collisions elegantly (e.g., placing forced text above normal text).
 
 ---
 
@@ -153,5 +171,5 @@ These are entirely separate codebases that require managing external lifecycles,
 * **Sensibility**: High. Since `ctranslate2` is already installed for `faster-whisper`, using it for NLLB would yield 2x-4x speedups and drastically lower VRAM usage via INT8 quantization.
 * **Complexity**: Medium.
 * **Subtasks**:
-  * `[ ]` Refactor `translator.py` to use `ctranslate2.Translator`.
-  * `[ ]` Handle automated downloading of CTranslate2-compatible NLLB models (or on-the-fly conversion).
+  * `[x]` Refactor `translator.py` to use `ctranslate2.Translator`.
+  * `[x]` Handle automated downloading of CTranslate2-compatible NLLB models (or on-the-fly conversion).

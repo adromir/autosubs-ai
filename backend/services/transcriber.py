@@ -349,7 +349,7 @@ def format_timestamp(seconds: float):
     seconds_remainder = seconds % 60
     return f"{hours:02d}:{minutes:02d}:{seconds_remainder:06.3f}".replace('.', ',')
 
-def transcribe_audio(audio_input, model_size: str, output_srt_path: str, language: str = None, provider: str = "auto", engine: str = "faster-whisper", cancel_check = None, custom_prompt: str = "", use_vad: bool = True, progress_callback = None, total_duration: float = 0.0, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote") -> str:
+def transcribe_audio(audio_input, model_size: str, output_srt_path: str, language: str = None, provider: str = "auto", engine: str = "faster-whisper", cancel_check = None, custom_prompt: str = "", use_vad: bool = True, progress_callback = None, total_duration: float = 0.0, deep_cleanup: bool = True, vad_onset: float = 0.500, vad_offset: float = 0.363, vad_model: str = "pyannote", beam_size: int = 5, compute_type_override: str = "default") -> str:
     global _transcription_cache
     import torch
     
@@ -365,6 +365,9 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
     elif provider == "cpu" or provider == "auto":
         device = "cpu"
         compute_type = "int8"
+
+    if compute_type_override and compute_type_override != "default":
+        compute_type = compute_type_override
 
 
     print(f"Executing Transcription with engine={engine}, provider={provider}, assigned_device={device}")
@@ -408,7 +411,7 @@ def transcribe_audio(audio_input, model_size: str, output_srt_path: str, languag
             
             kwargs = {
                 "language": language,
-                "beam_size": 5,
+                "beam_size": beam_size,
                 "vad_filter": use_vad,
                 # Fix: Propagate VAD tuning to faster-whisper's built-in Silero-VAD
                 "vad_parameters": dict(

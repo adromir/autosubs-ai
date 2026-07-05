@@ -424,7 +424,12 @@ def get_settings():
         "telegram_bot_token": "", 
         "telegram_chat_id": "", 
         "model_cache_dir": "",
-        "subliminal_providers": _DEFAULT_PROVIDERS
+        "subliminal_providers": _DEFAULT_PROVIDERS,
+        "whisper_beam_size": 5,
+        "whisper_compute_type": "default",
+        "translation_batch_mode": True,
+        "disable_reasoning": True,
+        "spec_draft_n_max": 0
     }
 
 class SettingsUpdate(BaseModel):
@@ -434,6 +439,11 @@ class SettingsUpdate(BaseModel):
     telegram_chat_id: str = ""
     model_cache_dir: str = ""
     subliminal_providers: List[Dict] = []
+    whisper_beam_size: int = 5
+    whisper_compute_type: str = "default"
+    translation_batch_mode: bool = True
+    disable_reasoning: bool = True
+    spec_draft_n_max: int = 0
 
 @router.post("/config/settings")
 def update_settings(settings: SettingsUpdate):

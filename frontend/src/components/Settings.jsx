@@ -175,6 +175,13 @@ export function Settings() {
   const [apiToken, setApiToken] = useState('');
   const [tokenCopied, setTokenCopied] = useState(false);
 
+  // Advanced AI Parameters
+  const [whisperBeamSize, setWhisperBeamSize] = useState(5);
+  const [whisperComputeType, setWhisperComputeType] = useState('default');
+  const [translationBatchMode, setTranslationBatchMode] = useState(true);
+  const [disableReasoning, setDisableReasoning] = useState(true);
+  const [specDraftNMax, setSpecDraftNMax] = useState(0);
+
   // ─── Data loading ─────────────────────────────────────────────────────────
   useEffect(() => {
     // Read the static token stored by App.jsx
@@ -194,6 +201,11 @@ export function Settings() {
         setTelegramChatId(d.telegram_chat_id || '');
         setModelCacheDir(d.model_cache_dir || '');
         setProviders(d.subliminal_providers || []);
+        setWhisperBeamSize(d.whisper_beam_size ?? 5);
+        setWhisperComputeType(d.whisper_compute_type || 'default');
+        setTranslationBatchMode(d.translation_batch_mode ?? true);
+        setDisableReasoning(d.disable_reasoning ?? true);
+        setSpecDraftNMax(d.spec_draft_n_max ?? 0);
       }).catch(() => {});
 
     fetchLLMModels();
@@ -343,6 +355,11 @@ export function Settings() {
           telegram_chat_id: telegramChatId,
           model_cache_dir: modelCacheDir,
           subliminal_providers: providers,
+          whisper_beam_size: parseInt(whisperBeamSize, 10) || 5,
+          whisper_compute_type: whisperComputeType,
+          translation_batch_mode: translationBatchMode,
+          disable_reasoning: disableReasoning,
+          spec_draft_n_max: parseInt(specDraftNMax, 10) || 0,
         })
       });
       if (!resp.ok) throw new Error('Failed to save settings');
@@ -623,7 +640,104 @@ export function Settings() {
         </section>
 
         {/* ════════════════════════════════════════════════════════════════
-            5. SYSTEM MAINTENANCE
+            5. ADVANCED AI PARAMETERS
+        ════════════════════════════════════════════════════════════════ */}
+        <section style={S.section}>
+          <div style={S.sectionHeader}>
+            <SettingsIcon size={20} color="var(--primary)" />
+            <h3 style={S.sectionTitle}>Advanced AI Parameters</h3>
+          </div>
+          <p style={S.sectionDesc}>
+            Fine-tune deep AI parameters globally. Only change if you know what you're doing.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label style={S.label}>Whisper Beam Size (Default: 5)</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={whisperBeamSize}
+                onChange={(e) => setWhisperBeamSize(parseInt(e.target.value, 10))}
+                className="text-input"
+              />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                Higher values increase accuracy but slow down transcription.
+              </div>
+            </div>
+            <div>
+              <label style={S.label}>Whisper Compute Type</label>
+              <CustomSelect
+                value={whisperComputeType}
+                onChange={(e) => setWhisperComputeType(e.target.value)}
+                options={[
+                  { value: 'default', label: 'Default (Auto)' },
+                  { value: 'float16', label: 'float16 (GPU Standard)' },
+                  { value: 'int8', label: 'int8 (CPU Standard / Low VRAM)' },
+                  { value: 'int8_float16', label: 'int8_float16' },
+                  { value: 'float32', label: 'float32' }
+                ]}
+              />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                Forces model quantization precision.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label style={S.label}>MTP Draft Tokens (spec-draft-n-max): {specDraftNMax}</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="6" 
+                step="1" 
+                value={specDraftNMax} 
+                onChange={e => setSpecDraftNMax(parseInt(e.target.value, 10))} 
+                style={{ width: '100%', marginTop: '0.5rem' }} 
+              />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                Speculative decoding. Set to 2 for Gemma 4 MTP models. Set to 0 to disable.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input
+                type="checkbox"
+                checked={translationBatchMode}
+                onChange={e => setTranslationBatchMode(e.target.checked)}
+                id="translationBatchModeGlobal"
+                style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+              />
+              <label htmlFor="translationBatchModeGlobal" style={{ fontWeight: 500, color: 'var(--text)' }}>
+                Use Translation Batch Mode
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input 
+                type="checkbox" 
+                checked={disableReasoning} 
+                onChange={e => setDisableReasoning(e.target.checked)} 
+                id="disableReasoningGlobal"
+                style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+              />
+              <label htmlFor="disableReasoningGlobal" style={{ fontWeight: 500, color: 'var(--text)' }}>
+                Disable Reasoning (Filters out &lt;think&gt; tags from DeepSeek/Gemma models)
+              </label>
+            </div>
+          </div>
+
+          <button className="btn-primary" onClick={handleSaveNotifications} disabled={savingNotifs}>
+            {savingNotifs ? 'Saving...' : 'Save AI Parameters'}
+          </button>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════
+            6. SYSTEM MAINTENANCE
         ════════════════════════════════════════════════════════════════ */}
         <section style={S.section}>
           <div style={S.sectionHeader}>

@@ -3,9 +3,10 @@ import { FolderBrowser } from './components/FolderBrowser';
 import { ConfigPanel } from './components/ConfigPanel';
 import { JobQueue } from './components/JobQueue';
 import { Settings } from './components/Settings';
+import { Glossary } from './components/Glossary';
 import { ConsoleLog } from './components/ConsoleLog';
 import { Login } from './components/Login';
-import { Tv, Settings as SettingsIcon, ArrowLeft, Terminal, RefreshCw, LogOut } from 'lucide-react';
+import { Tv, Settings as SettingsIcon, Book, ArrowLeft, Terminal, RefreshCw, LogOut } from 'lucide-react';
 import './App.css';
 
 // Intercept global fetch to add Auth header
@@ -175,19 +176,28 @@ function App() {
         <div className="button-groups-container">
           {/* Group 1: App Navigation */}
           <div className="system-group">
-            {view === 'home' ? (
+            {view !== 'home' && (
+              <button 
+                onClick={() => setView('home')} 
+                title="Back to Dashboard"
+              >
+                <Tv size={20} /> Dashboard
+              </button>
+            )}
+            {view !== 'settings' && (
               <button 
                 onClick={() => setView('settings')} 
                 title="Open Settings"
               >
                 <SettingsIcon size={20} /> Settings
               </button>
-            ) : (
+            )}
+            {view !== 'glossary' && (
               <button 
-                onClick={() => setView('home')} 
-                title="Back to Dashboard"
+                onClick={() => setView('glossary')} 
+                title="Open Glossary"
               >
-                <Tv size={20} /> Dashboard
+                <Book size={20} /> Glossary
               </button>
             )}
             <button
@@ -237,6 +247,8 @@ function App() {
       <main className="layout-container">
         {view === 'settings' ? (
           <Settings />
+        ) : view === 'glossary' ? (
+          <Glossary />
         ) : (
           <div className="grid-cols-2">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

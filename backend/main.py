@@ -13,6 +13,7 @@ for logger_name in ["httpx", "huggingface_hub", "transformers", "filelock"]:
 # --------------------------------------
 
 from api.routes import router as api_router
+from api.glossary import router as glossary_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -95,6 +96,7 @@ from api.auth import router as auth_router, verify_token
 
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(api_router, prefix="/api", dependencies=[Depends(verify_token)])
+app.include_router(glossary_router, prefix="/api", dependencies=[Depends(verify_token)])
 
 def health_check():
     return {"status": "ok"}

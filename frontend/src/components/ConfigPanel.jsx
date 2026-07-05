@@ -101,7 +101,8 @@ export function ConfigPanel({ onProcess, disabled }) {
     tracks: false,
     engine: false,
     translation: false,
-    discovery: false
+    discovery: false,
+    advanced: false
   });
 
   const toggleSection = (section) => {
@@ -141,8 +142,6 @@ export function ConfigPanel({ onProcess, disabled }) {
   const [useNfo, setUseNfo] = useState(false);
   const [autoSync, setAutoSync] = useState(false);
   const [autoJanitor, setAutoJanitor] = useState(true);
-  const [disableReasoning, setDisableReasoning] = useState(true);
-  const [specDraftNMax, setSpecDraftNMax] = useState(0);
   const [fetchAllAvailable, setFetchAllAvailable] = useState(false);
   const [isProfileDefault, setIsProfileDefault] = useState(false);
   const [localLlamaModels, setLocalLlamaModels] = useState([]);
@@ -196,9 +195,6 @@ export function ConfigPanel({ onProcess, disabled }) {
       useNfo !== (p.use_nfo ?? false),
       autoSync !== (p.auto_sync ?? false),
       autoJanitor !== (p.auto_janitor ?? true),
-      disableReasoning !== (p.disable_reasoning ?? true),
-      specDraftNMax !== (p.spec_draft_n_max ?? 0),
-      fallbackToTargets !== (p.fallback_to_targets ?? false),
       fetchAllAvailable !== (p.fetch_all_available ?? false),
       llmModelPath !== (p.llm_model_path || '')
     ];
@@ -248,8 +244,6 @@ export function ConfigPanel({ onProcess, disabled }) {
     setUseNfo(p.use_nfo || false);
     setAutoSync(p.auto_sync || false);
     setAutoJanitor(p.auto_janitor ?? true);
-    setDisableReasoning(p.disable_reasoning ?? true);
-    setSpecDraftNMax(p.spec_draft_n_max ?? 0);
     setFetchAllAvailable(p.fetch_all_available || false);
     setIsProfileDefault(p.is_default || false);
     
@@ -286,6 +280,7 @@ export function ConfigPanel({ onProcess, disabled }) {
       allow_title_match: allowTitleMatch,
       use_nfo: useNfo,
       auto_sync: autoSync,
+      auto_janitor: autoJanitor,
       fetch_all_available: fetchAllAvailable,
       is_default: isProfileDefault,
       llm_model_path: llmModelPath
@@ -845,32 +840,6 @@ Deep Cleanup: Advanced post-processing to fix formatting, remove duplicate lines
           </label>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-          <input 
-            type="checkbox" 
-            checked={disableReasoning} 
-            onChange={e => setDisableReasoning(e.target.checked)} 
-            id="disableReasoning"
-            style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-          />
-          <label htmlFor="disableReasoning" style={{ fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
-            Disable Reasoning (Filters out &lt;think&gt; tags from DeepSeek/Gemma models)
-          </label>
-        </div>
-        <div style={{ marginTop: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'help' }} title="Number of draft tokens for speculative decoding (MTP). Set to 2 for Gemma 4 MTP models. Set to 0 to disable.">
-            MTP Draft Tokens (spec-draft-n-max): {specDraftNMax}
-          </label>
-          <input 
-            type="range" 
-            min="0" 
-            max="6" 
-            step="1" 
-            value={specDraftNMax} 
-            onChange={e => setSpecDraftNMax(parseInt(e.target.value))} 
-            style={{ width: '100%' }} 
-          />
-        </div>
       </CollapsibleSection>
 
       <CollapsibleSection 
@@ -983,6 +952,7 @@ IMPORTANT: You MUST enable and prioritize your preferred providers (e.g., OpenSu
           </div>
         </div>
       </CollapsibleSection>
+
 
       {/* Action Footer */}
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>

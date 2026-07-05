@@ -370,6 +370,20 @@ async def process_phase_2(job):
             trans_lang = None
         elif trans_lang:
             print(f" -> Using hinted language '{trans_lang}' for transcription.")
+            
+        import json
+        from pathlib import Path
+        # Load global AI settings
+        ai_settings = {"whisper_beam_size": 5, "whisper_compute_type": "default"}
+        config_path = Path("backend/data/config.json")
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    data = json.load(f)
+                    ai_settings["whisper_beam_size"] = data.get("whisper_beam_size", 5)
+                    ai_settings["whisper_compute_type"] = data.get("whisper_compute_type", "default")
+            except Exception:
+                pass
 
         await job_manager.update_job(job.id, status="transcribing", progress=40.0, message=f"Transcribing (Engine: {job.engine})")
         
@@ -403,7 +417,9 @@ async def process_phase_2(job):
             deep_cleanup=job.deep_cleanup,
             vad_onset=job.vad_onset,
             vad_offset=job.vad_offset,
-            vad_model=job.vad_model
+            vad_model=job.vad_model,
+            beam_size=ai_settings["whisper_beam_size"],
+            compute_type_override=ai_settings["whisper_compute_type"]
         )
         
         if detected_lang and detected_lang != job.base_language:
@@ -516,6 +532,21 @@ async def process_phase_3(job):
         source_lang = job.actual_source_lang or job.base_language
         base_srt = _get_srt_path(job.filepath, source_lang, getattr(job, "emby_naming", False))
         
+        # Load global AI settings for translation
+        import json
+        from pathlib import Path
+        ai_settings = {"translation_batch_mode": True, "disable_reasoning": True, "spec_draft_n_max": 0}
+        config_path = Path("backend/data/config.json")
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    data = json.load(f)
+                    ai_settings["translation_batch_mode"] = data.get("translation_batch_mode", True)
+                    ai_settings["disable_reasoning"] = data.get("disable_reasoning", True)
+                    ai_settings["spec_draft_n_max"] = data.get("spec_draft_n_max", 0)
+            except Exception:
+                pass
+        
         if not os.path.exists(base_srt):
             raise RuntimeError(f"Source SRT not found at {base_srt}")
             
@@ -550,11 +581,9 @@ async def process_phase_3(job):
             
             if engine == "native":
                 model_path = getattr(job, "llm_model_path", "")
-                disable_reasoning = getattr(job, "disable_reasoning", True)
-                spec_draft_n_max = getattr(job, "spec_draft_n_max", 0)
-                await asyncio.to_thread(native_llama_translate, base_srt, output_srt, tgt_lang, source_lang, model_path, is_cancelled, progress_callback=trans_progress, disable_reasoning=disable_reasoning, spec_draft_n_max=spec_draft_n_max)
+                await asyncio.to_thread(native_llama_translate, base_srt, output_srt, tgt_lang, source_lang, model_path, is_cancelled, progress_callback=trans_progress, disable_reasoning=ai_settings["disable_reasoning"], spec_draft_n_max=ai_settings["spec_draft_n_max"], batch_mode=ai_settings["translation_batch_mode"])
             else:
-                await asyncio.to_thread(translate_srt, base_srt, output_srt, tgt_lang, source_lang, job.provider, is_cancelled, progress_callback=trans_progress)
+                await asyncio.to_thread(translate_srt, base_srt, output_srt, tgt_lang, source_lang, job.provider, is_cancelled, progress_callback=trans_progress, batch_mode=ai_settings["translation_batch_mode"])
             
             # Post-processing refined output
             await asyncio.to_thread(sanitize_and_refine, output_srt, deep_cleanup=job.deep_cleanup)

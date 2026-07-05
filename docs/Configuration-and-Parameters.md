@@ -18,6 +18,14 @@ If you only ever process certain languages, you can constrain the UI dropdown me
 - **Enabled Languages**: Unchecking languages removes them from the Job Profiles dropdown, keeping your UI clean.
 - **Enabled Models**: Disable models you never intend to use (e.g., if you only have 8GB of VRAM, you might want to disable `large-v3` to prevent accidental Out-Of-Memory crashes).
 
+### Advanced AI Parameters (`Settings` tab)
+These parameters govern the underlying AI execution environment universally across all jobs:
+- **Whisper Beam Size**: Higher beam sizes generally produce slightly more accurate transcriptions at the cost of slower processing speeds. The default is 5.
+- **Whisper Compute Type**: Force specific quantization levels (e.g. `float16`, `int8`, `int8_float16`) to fine-tune memory vs. speed trade-offs.
+- **MTP Draft Tokens (spec-draft-n-max)**: Speculative decoding draft tokens. Essential for taking advantage of Multi-Token Prediction models (like Gemma 4).
+- **Translation Batch Mode**: Instead of translating sequentially line-by-line, the translation engine bundles multiple lines at once. This significantly accelerates total processing time, though it requires slightly more GPU VRAM.
+- **Disable Reasoning**: Automatically filters out `<think>` tags from DeepSeek or Gemma reasoning models, keeping your SRT output clean.
+
 ---
 
 ## Job Profiles & Parameters
@@ -29,6 +37,7 @@ A **Job Profile** defines the exact parameters for a given folder. When you subm
 - **Target Language**: The language you want the final subtitle to be in. If this differs from the Source Language, the Translation phase is triggered.
 - **Transcription Model**: The Whisper model size to use (`base`, `small`, `medium`, `large-v3`).
 - **Translation Engine**: The engine used if translation is needed (`Native LLM` vs `NLLB`).
+
 
 ### Pipeline Toggles
 These settings dictate which steps of the 5-phase pipeline are permitted to run:

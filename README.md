@@ -89,6 +89,11 @@ AutoSubs AI features a versatile, high-performance translation pipeline designed
     *   **Maximum Performance**: Optimized for rapid, sentence-level translation across 200+ languages.
     *   **Lightweight**: Minimal VRAM footprint, ideal for background processing while multi-tasking.
 
+### 📚 Translation Memory & Glossary
+Maintain perfect consistency across multiple files and TV show episodes:
+*   **Custom Term Dictionary**: Define specific source-to-target translations (e.g., character names, fictional locations) in the new Glossary UI.
+*   **Engine Agnostic**: Works perfectly with both Native LLMs (via system prompt injection) and NLLB (via intelligent post-translation substitution).
+
 ### 🔄 Automatic Audio Synchronization
 Never deal with "out of sync" subtitles again:
 *   **Smart Alignment**: Internet-fetched subtitles are automatically passed to **FFsubsync** to align them perfectly with the video's actual audio track.
@@ -98,6 +103,11 @@ Never deal with "out of sync" subtitles again:
 When no subtitles exist, create your own with industry-leading accuracy:
 *   **Whisper Engines**: Full support for `Faster-Whisper` and `WhisperX` (the gold standards of transcription).
 *   **SRT Sanitization**: Every subtitle is automatically normalized to `UTF-8` with Unix line endings (`\n`) to ensure 100% downstream stability.
+
+### ⚙️ Advanced AI Parameter Tuning
+Power users have complete control over the AI execution environment directly from the UI:
+*   **Whisper Optimization**: Adjust `Beam Size` or force specific `Compute Types` (`float16`, `int8`, `int8_float16`) to perfectly balance speed, accuracy, and VRAM limitations.
+*   **LLM Batching Controls**: Choose between high-throughput batching or strict sequential generation to optimize quality vs speed.
 
 <p align="center">
   <img src="docs/assets/console.png" width="90%">

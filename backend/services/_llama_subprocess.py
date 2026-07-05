@@ -39,6 +39,23 @@ def main():
     # We must import NativeLlamaService here, AFTER environments are set
     from backend.services.translator import NativeLlamaService
     
+    # Load Glossary safely
+    matched_glossary = []
+    try:
+        try:
+            from backend.api.glossary import load_glossary
+        except ImportError:
+            from api.glossary import load_glossary
+            
+        glossary_data = load_glossary()
+        for e in glossary_data:
+            if e.get("source_lang", "").lower() == source_lang.lower() and e.get("target_lang", "").lower() == target_lang.lower():
+                matched_glossary.append({"source": e.get("source_term"), "target": e.get("target_term")})
+    except Exception as e:
+        print(f"Warning: Failed to load glossary in subprocess: {e}", file=sys.stderr)
+        
+    llama_params["glossary"] = matched_glossary
+    
     llama_service = NativeLlamaService()
     
     try:
@@ -60,6 +77,11 @@ def main():
     # Sentence-aware batching logic
     min_batch = 20
     max_batch = 45
+    
+    if "batch_mode" in llama_params and not llama_params["batch_mode"]:
+        min_batch = 1
+        max_batch = 1
+        
     sentence_enders = {'.', '!', '?', '"', '”', '»'}
     
     batches = []
@@ -87,7 +109,8 @@ def main():
         print(f"[Llama Subprocess] Translating batch {batch_num}/{total_batches} ({len(batch_events)} lines)...", flush=True)
 
         try:
-            translations = llama_service.translate_batch(batch_texts, target_lang, source_lang)
+            glossary = llama_params.get("glossary", None)
+            translations = llama_service.translate_batch(batch_texts, target_lang, source_lang, glossary)
             for i, event in enumerate(batch_events):
                 if i < len(translations):
                     event.text = translations[i].strip()
