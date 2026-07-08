@@ -7,7 +7,7 @@ pysubs2>=1.7.0
 sse-starlette>=2.0.0
 pydantic>=2.7.0
 python-multipart>=0.0.32
-python-dotenv>=1.0.1
+python-dotenv>=1.2.2
 hf-transfer>=0.1.9
 huggingface_hub
 requests
