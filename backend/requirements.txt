@@ -1,4 +1,4 @@
-fastapi>=0.110.0
+fastapi>=0.139.0
 uvicorn>=0.31.1
 ffmpeg-python==0.2.0
 transformers>=4.40.0
